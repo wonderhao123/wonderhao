@@ -6,8 +6,8 @@ const isStaticExport = process.env.STATIC_EXPORT === "true";
 const nextConfig: NextConfig = {
   devIndicators: false,
   output: isStaticExport ? "export" : "standalone",
-  basePath: isStaticExport ? "/vnc" : "",
-  assetPrefix: isStaticExport ? "/vnc/" : "",
+  basePath: isStaticExport ? "/wonderhao" : "",
+  assetPrefix: isStaticExport ? "/wonderhao/" : "",
   images: {
     unoptimized: true,
   },

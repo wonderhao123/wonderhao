@@ -11,7 +11,7 @@ interface HoloOverlayProps {
   touchTiltY?: number;
 }
 
-const BASE_PATH = process.env.NODE_ENV === 'production' ? '/vnc' : '';
+const BASE_PATH = process.env.NODE_ENV === 'production' ? '/wonderhao' : '';
 const LOGO_PATH = `${BASE_PATH}/logo.svg`;
 
 export function HoloOverlay({ x, y, isFlipped = false, touchTiltX = 0, touchTiltY = 0 }: HoloOverlayProps) {

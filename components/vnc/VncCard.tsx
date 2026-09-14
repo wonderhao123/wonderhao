@@ -14,7 +14,7 @@ interface VncCardProps {
   isFloating?: boolean; // For desktop mode
 }
 
-const BASE_PATH = process.env.NODE_ENV === 'production' ? '/vnc' : '';
+const BASE_PATH = process.env.NODE_ENV === 'production' ? '/wonderhao' : '';
 const LOGO_PATH = `${BASE_PATH}/company_logo.svg`;
 
 export function VncCard({ x, y, isFloating = false }: VncCardProps) {
