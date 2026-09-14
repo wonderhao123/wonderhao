@@ -32,7 +32,7 @@ jobs:
         run: npm ci
 
       - name: Build with Next.js
-        run: npm run build
+        run: npm run build:static
         env:
           STATIC_EXPORT: "true"
 
