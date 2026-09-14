@@ -1,15 +1,20 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 
-const isProd = process.env.NODE_ENV === 'production';
+const isStaticExport = process.env.STATIC_EXPORT === "true";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
-  output: 'export',
-  basePath: isProd ? '/vnc' : '',
-  assetPrefix: isProd ? '/vnc/' : '',
+  output: isStaticExport ? "export" : "standalone",
+  basePath: isStaticExport ? "/vnc" : "",
+  assetPrefix: isStaticExport ? "/vnc/" : "",
   images: {
-    unoptimized: true, // Required for static export
+    unoptimized: true,
   },
 };
 
 export default nextConfig;
+
+if (!isStaticExport) {
+  initOpenNextCloudflareForDev();
+}
