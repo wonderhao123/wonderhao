@@ -93,7 +93,8 @@ test("moving ship hulls clear land, not only their centre points",()=>{
  for(let i=0;i<vesselSpecs.length;i++)for(let t=0;t<360;t+=2){const s=vesselSpecs[i],v=vesselState(t,i);for(const side of [-1,1])for(const end of [-1,1]){const x=v.p[0]+Math.cos(v.heading)*s.beam/2*side+Math.sin(v.heading)*s.length/2*end,z=v.p[2]-Math.sin(v.heading)*s.beam/2*side+Math.cos(v.heading)*s.length/2*end;assert.ok(terrainHeight(x,z)<.5,`${s.id} hull touches land at ${x},${z}`)}}
 });
 
-const {projectBuildings}=await import(url(compile('../lib/world/city-buildings.ts')));
+const landmarkSpec=JSON.parse(readFileSync(new URL('../lib/world/landmark-spec.json',import.meta.url)));
+const {projectBuildings}=await import(url(compile('../lib/world/city-buildings.ts').replace(/import spec from ['"]\.\/landmark-spec\.json['"];?/,`const spec=${JSON.stringify(landmarkSpec)};`)));
 const registry=await import(content);
 test('each real project has exactly one semantic building and no scene invents a case',()=>{
  const mapped=projectBuildings.flatMap(b=>b.projects);
@@ -104,4 +105,15 @@ test('each real project has exactly one semantic building and no scene invents a
 test('relocated historical place links still meet the same surveyed anchors',()=>{
  for(const place of registry.places)assert.deepEqual(place.position,sites[place.id]);
  for(const [x,z] of [[480,390],[515,390],[445,390]])assert.ok(terrainHeight(x,z)<-7,'circular facility needs submerged seabed support');
+});
+
+test('offshore shell, interaction and seabed share a complete spherical volume',()=>{
+ const sphere=landmarkSpec.observatory,b=projectBuildings.find(b=>b.id==='research');
+ assert.deepEqual(b.position,sphere.center);assert.deepEqual(b.size,[sphere.radius*2,sphere.radius*2,sphere.radius*2]);
+ assert.ok(sphere.center[1]>0&&sphere.center[1]<sphere.radius*.2);
+ for(let i=0;i<72;i++){const a=i*Math.PI/36;const x=sphere.center[0]+Math.cos(a)*sphere.radius,z=sphere.center[2]+Math.sin(a)*sphere.radius;assert.ok(terrainHeight(x,z)<=sphere.foundationY,'seabed must clear the entire lower hemisphere and foundation');}
+});
+
+test('Ring terrain stays below exposed foundation terrace tops',()=>{
+ for(const [radius,top] of [[56,74],[60,72],[64,70]])for(let i=0;i<72;i++){const a=i*Math.PI/36;assert.ok(terrainHeight(80+Math.cos(a)*radius,-480+Math.sin(a)*radius)<top-.5);}
 });

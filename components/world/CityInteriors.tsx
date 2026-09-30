@@ -2,9 +2,10 @@
 import {useEffect,useMemo,useRef} from 'react';
 import {useFrame} from '@react-three/fiber';
 import * as THREE from 'three';
+import {LandmarkAsset} from './LandmarkAsset';
 import {Parts} from './CityTerrain';
 import type {Part} from '@/lib/world/city-assets';
-import {hash} from '@/lib/world/city-plan';
+import {hash,terrainHeight,relocation} from '@/lib/world/city-plan';
 import type {Clock} from './CityLife';
 function Annulus({y,inner,outer,height,color,start=0,length=Math.PI*2}:{y:number;inner:number;outer:number;height:number;color:string;start?:number;length?:number}){
  const g=useMemo(()=>{const s=new THREE.Shape();s.absarc(0,0,outer,start,start+length,false);s.lineTo(Math.cos(start+length)*inner,Math.sin(start+length)*inner);s.absarc(0,0,inner,start+length,start,true);s.closePath();const geo=new THREE.ExtrudeGeometry(s,{depth:height,bevelEnabled:false,curveSegments:96});geo.rotateX(-Math.PI/2);return geo},[inner,outer,height,start,length]);
@@ -48,18 +49,18 @@ function Fish({i,clock}:{i:number;clock:Clock}){
  useFrame(()=>{const t=clock.current*.15+i*.55,r=15+(i%8)*3;if(ref.current){ref.current.position.set(1590+Math.cos(t)*r,-5-(i%3)*.8,1850+Math.sin(t)*r*.7);ref.current.rotation.y=-t-Math.PI/2}if(tail.current)tail.current.rotation.y=Math.sin(clock.current*6+i)*.4});
  return <group ref={ref} scale={.55}><mesh scale={[.35,.55,1.4]}><sphereGeometry args={[1,8,6]}/><meshStandardMaterial color={['#d0c683','#82bfbd','#c59aa2'][i%3]}/></mesh><mesh ref={tail} position={[0,0,-1.3]} scale={[.15,.6,.7]}><coneGeometry args={[1,1,3]}/><meshStandardMaterial color="#6eaba9"/></mesh></group>
 }
-export function Underwater({clock,low}:{clock:Clock;low:boolean}){
+export function Underwater({clock,low,onStatus}:{clock:Clock;low:boolean;onStatus?:(id:string,state:string)=>void}){
  const waterTime=useRef({value:0});useFrame(()=>{waterTime.current.value=clock.current});
  const particles=useRef<THREE.Points>(null);
  const motes=useMemo(()=>{const g=new THREE.BufferGeometry(),v=[];for(let i=0;i<120;i++)v.push(1560+hash(i+71)*90,-3-hash(i+62)*5,1810+hash(i+13)*130);g.setAttribute('position',new THREE.Float32BufferAttribute(v,3));return g},[]);
  useEffect(()=>()=>motes.dispose(),[motes]);
  useFrame(()=>{if(particles.current)particles.current.position.set(Math.sin(clock.current*.07)*2,Math.sin(clock.current*.1)*.3,0)});
 
- const sand=useMemo(()=>{const g=new THREE.PlaneGeometry(430,520,80,80);g.rotateX(-Math.PI/2);g.translate(1570,0,1880);const a=g.attributes.position;for(let i=0;i<a.count;i++){const x=a.getX(i),z=a.getZ(i);a.setY(i,-3-Math.max(0,z-1670)*.045+Math.sin(x*.04)*.65+Math.sin(z*.05)*.35)}g.computeVertexNormals();return g},[]);
+ const sand=useMemo(()=>{const g=new THREE.PlaneGeometry(430,520,80,80);g.rotateX(-Math.PI/2);g.translate(1570,0,1880);const a=g.attributes.position;for(let i=0;i<a.count;i++){const x=a.getX(i),z=a.getZ(i);a.setY(i,terrainHeight(x+relocation.dive[0],z+relocation.dive[2]))}g.computeVertexNormals();return g},[]);
  useEffect(()=>()=>sand.dispose(),[sand]);
  const parts=useMemo(()=>{
-  const p:Part[]=[];for(let i=0;i<125;i++){const x=1450+hash(i+110)*260,z=1750+hash(i+820)*250,y=-3-(z-1670)*.045;const r=1+hash(i)*3;
-   if(Math.hypot(x-1610,z-1940)<31)continue;
+  const p:Part[]=[];for(let i=0;i<125;i++){const x=1450+hash(i+110)*260,z=1750+hash(i+820)*250,y=terrainHeight(x+relocation.dive[0],z+relocation.dive[2]);const r=1+hash(i)*3;
+   if(Math.hypot(x-1610,z-1940)<31||Math.hypot(x-1540,z-1770)<39)continue;
    p.push([2,['#79918b','#8f9987','#a9ac92'][i%3],x,y+r*.4,z,r,r*.75,r*.8,hash(i)*6]);
    if(i%2===0)for(let j=0;j<7;j++){
     const a=j*.9,cx=x+Math.sin(a)*1.4,cz=z+Math.cos(a)*1.4;
@@ -67,17 +68,14 @@ export function Underwater({clock,low}:{clock:Clock;low:boolean}){
     p.push([2,['#c18d79','#b5a886','#859f92'][i%3],cx,y+2,cz,1.2,.25,1,0]);
    }
   }
-  // A single low observation habitat rests on four visible seabed foundations.
-  p.push([0,'#e0e5dc',1610,-12.5,1940,29,5,15,0],[0,'#476e78',1610,-12,1947.6,23,3,.2,0],[0,'#A66BFF',1610,-9.8,1947.8,28,.12,.2,0]);
-  for(const x of [1598,1622])for(const z of [1935,1945])p.push([1,'#adb9ac',x,-16,z,1.1,4,1.1,0]);
-  p.push([0,'#d0d9cf',1630,-13,1940,13,3,5,0],[1,'#c5d8d1',1640,-12.5,1940,4,4,4,0]);
   return p;
  },[]);
+ const grassBeds=useMemo(()=>Array.from({length:600},(_,i)=>{const x=1550+hash(i+790)*115,z=1800+hash(i+397)*190;return {x,z,y:terrainHeight(x+relocation.dive[0],z+relocation.dive[2])+.9}}),[]);
  const grass=useRef<THREE.InstancedMesh>(null),dummy=useMemo(()=>new THREE.Object3D(),[]);
- useFrame(()=>{if(!grass.current)return;for(let i=0;i<600;i++){const x=1550+hash(i+790)*115,z=1800+hash(i+397)*190;dummy.position.set(x,-2-(z-1670)*.045,z);dummy.rotation.set(Math.sin(clock.current*.6+i)*.13,hash(i)*6,0);dummy.scale.set(.24,.5+hash(i)*.8,.24);dummy.updateMatrix();grass.current.setMatrixAt(i,dummy.matrix)}grass.current.instanceMatrix.needsUpdate=true});
+ useFrame(()=>{if(!grass.current)return;for(let i=0;i<600;i++){const {x,y,z}=grassBeds[i];dummy.position.set(x,y,z);dummy.rotation.set(Math.sin(clock.current*.6+i)*.13,hash(i)*6,0);const clear=Math.abs(x-1610)<20&&Math.abs(z-1940)<9;dummy.scale.set(clear?0:.24,clear?0:.5+hash(i)*.8,clear?0:.24);dummy.updateMatrix();grass.current.setMatrixAt(i,dummy.matrix)}grass.current.instanceMatrix.needsUpdate=true});
  return <>
   <points ref={particles} geometry={motes}><pointsMaterial color="#b8d8cd" size={.06} transparent opacity={.24} depthWrite={false}/></points>
-  <mesh geometry={sand} receiveShadow><meshStandardMaterial color="#9fb9a3" roughness={.95} onBeforeCompile={shader=>{shader.uniforms.waterTime=waterTime.current;shader.vertexShader='varying vec3 reefPoint;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nreefPoint=position;');shader.fragmentShader='uniform float waterTime; varying vec3 reefPoint;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat bands=abs(sin(reefPoint.x*.7+sin(reefPoint.z*.3+waterTime*.4))+sin(reefPoint.z*.8+cos(reefPoint.x*.4-waterTime*.2)));diffuseColor.rgb += vec3(.06,.09,.08)*(1.-smoothstep(.04,.2,bands));');}}/></mesh><Parts parts={parts} dusk={false}/>
+  <mesh geometry={sand} receiveShadow><meshStandardMaterial color="#9fb9a3" roughness={.95} onBeforeCompile={shader=>{shader.uniforms.waterTime=waterTime.current;shader.vertexShader='varying vec3 reefPoint;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nreefPoint=position;');shader.fragmentShader='uniform float waterTime; varying vec3 reefPoint;\n'+shader.fragmentShader.replace('#include <color_fragment>','#include <color_fragment>\nfloat bands=abs(sin(reefPoint.x*.7+sin(reefPoint.z*.3+waterTime*.4))+sin(reefPoint.z*.8+cos(reefPoint.x*.4-waterTime*.2)));diffuseColor.rgb += vec3(.025,.045,.035)*(1.-smoothstep(.04,.2,bands));');}}/></mesh><Parts parts={parts} dusk={false}/><group position={[1610,-12.5,1940]}><LandmarkAsset name="habitat" low={low} onStatus={onStatus}/></group>
   <instancedMesh ref={grass} args={[undefined,undefined,600]}><planeGeometry args={[1,3,1,4]}/><meshStandardMaterial color="#568c7d" side={THREE.DoubleSide}/></instancedMesh>
   {Array.from({length:low?16:48},(_,i)=><Fish key={i} i={i} clock={clock}/>)}
   <pointLight position={[1610,-8,1942]} color="#bba5ff" intensity={55} distance={55}/>

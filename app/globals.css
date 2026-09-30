@@ -3444,3 +3444,11 @@ html {
 .building-marker.is-compact { padding:7px;min-width:24px;min-height:24px;justify-content:center; }
 .building-marker.is-compact:not(:hover):not(:focus-visible) .building-marker-name,.building-marker.is-compact:not(:hover):not(:focus-visible) .building-marker-arrow{display:none;}
 @media(max-width:700px){.building-marker.is-compact{min-width:44px;min-height:44px}.building-marker-name{max-width:100px;overflow:hidden;text-overflow:ellipsis;}}
+
+/* Numbered touch targets preserve the map at narrow widths; names remain accessible. */
+.building-index { display: none; }
+@media (max-width:700px) {
+  .building-marker { min-width:44px; min-height:44px; justify-content:center; }
+  .building-marker .building-marker-name,.building-marker .building-marker-arrow,.building-marker .building-dot { display:none; }
+  .building-marker .building-index { display:block; font-family:var(--font-geist-mono),monospace; font-size:12px; }
+}

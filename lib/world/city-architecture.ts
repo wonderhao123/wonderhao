@@ -4,27 +4,34 @@ import type {Part} from './city-assets';
 export const materials = {
  stone:'#e4dfcf', white:'#f2efe5', concrete:'#b9bcb3', glass:'#386574', dark:'#263f4a',
  bronze:'#a48864', terracotta:'#a85e48', sand:'#d2c4a7', paving:'#c8c9bc', green:'#6f8d61',
- leaves:'#50775b', grass:'#82996c', asphalt:'#596969', water:'#589f9a', red:'#b65545',
+ leaves:'#386947', grass:'#82996c', asphalt:'#596969', water:'#589f9a', red:'#b65545',
 };
 export function makeArchitecture():Part[]{
  const p:Part[]=[];const m=materials;const ground=20;
  const box=(c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0)=>p.push([0,c,x,y,z,w,h,d,r]);
  const column=(c:string,x:number,y:number,z:number,r:number,h:number)=>p.push([1,c,x,y,z,r,h,r,0]);
  const roof=(x:number,y:number,z:number,w:number,h:number,d:number,c=m.terracotta)=>p.push([4,c,x,y,z,w,h,d,0]);
- const tree=(x:number,z:number,size=1)=>{column(m.bronze,x,ground+2.5*size,z,.28*size,5*size);p.push([2,m.leaves,x,ground+7*size,z,3.6*size,4.5*size,3.6*size,0]);};
+ const arch=(c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0)=>p.push([9,c,x,y,z,w,h,d,r]);
+ const curvedRoof=(x:number,y:number,z:number,w:number,h:number,d:number)=>p.push([8,m.terracotta,x,y,z,w,h,d,0]);
+ const tree=(x:number,z:number,size=1)=>{column(m.bronze,x,ground+2.5*size,z,.28*size,5*size);p.push([6,m.leaves,x,ground+6*size,z,5.6*size,4.5*size,5.6*size,x*.017]);};
+ const palm=(x:number,z:number)=>{column(m.bronze,x,24,z,.23,8);p.push([5,m.leaves,x,28,z,5.5,5.5,5.5,x*.013])};
  const slab=(x:number,z:number,w:number,d:number,c=m.paving)=>box(c,x,ground+.25,z,w,.5,d);
  const bench=(x:number,z:number,r=0)=>{box(m.bronze,x,21,z,3.5,.3,.7,r);box(m.dark,x,20.5,z,2.5,.7,.4,r)};
  const lamp=(x:number,z:number)=>{column(m.dark,x,23.5,z,.12,7);box(m.white,x+.7,27,z,1.8,.16,.5)};
  const entry=(x:number,z:number,w=10)=>{box(m.glass,x,22.4,z,w,4.5,.3);box(m.white,x,25,z+3,w+3,.35,6);for(const a of [-1,1])column(m.bronze,x+a*(w/2+1),22.5,z+5,.15,5);slab(x,z+8,w+2,6)};
  const ribbons=(x:number,z:number,w:number,d:number,h:number,base=26,step=3.5,c=m.white)=>{
-  for(let y=base;y<base+h;y+=step){box(c,x,y,z,w+1,.25,d+1);}
-  for(let a=-w/2+2;a<w/2;a+=4){for(const side of [-1,1])box(m.bronze,x+a,base+h/2,z+side*(d/2+.1),.2,h,.24)}
-  for(let a=-d/2+2;a<d/2;a+=4){for(const side of [-1,1])box(m.bronze,x+side*(w/2+.1),base+h/2,z+a,.24,h,.2)}
+  for(let y=base;y<base+h;y+=step){box(c,x,y,z,w+.5,.16,d+.5);}
+  for(let a=-w/2+2;a<w/2;a+=6){for(const side of [-1,1])box(m.bronze,x+a,base+h/2,z+side*(d/2+.1),.14,h,.35)}
+  for(let a=-d/2+2;a<d/2;a+=6){for(const side of [-1,1])box(m.bronze,x+side*(w/2+.1),base+h/2,z+a,.35,h,.14)}
  };
  const office=(x:number,z:number,w:number,d:number,h:number,kind:number)=>{
   slab(x,z,w+20,d+22);box(m.stone,x,23,z,w+12,6,d+12);entry(x,z+d/2+6,14);
   // Occupied podium, upper setback and a planted sky terrace break the extrusion.
-  box(m.glass,x,26+h/2,z,w,h,d);ribbons(x,z,w,d,h);
+  box(m.glass,x,26+h/2,z,w,h,d);ribbons(x,z,w,d,h,26,kind===1?7:3.8,kind===1?m.dark:m.white);
+  if(kind===1)for(let a=-w/2+3;a<w/2;a+=5)for(const side of [-1,1])box(m.stone,x+a,26+h/2,z+side*(d/2+.65),.55,h,1.25);
+  // Service core and a sheltered colonnade make every elevation inhabited.
+  box(m.stone,x-w/2+2,26+h/2,z,4,h,d-2);
+  for(let a=-w/2;a<=w/2;a+=8){box(m.glass,x+a,23,z+d/2+6.12,5,3.8,.2);}
   const gardenY=26+h*.55;box(m.dark,x,gardenY,z,w+2,3,d+2);
   for(let i=0;i<7;i++)box(m.green,x-w/2+4+i*(w-8)/6,gardenY+1.7,z+d/2+1,3,1.2,3);
   box(m.stone,x,27+h,z,w+2,2,d+2);box(m.green,x,28.1+h,z,w-4,.4,d-4);
@@ -37,7 +44,7 @@ export function makeArchitecture():Part[]{
  for(let i=0;i<64;i++){const x=-360+i*12,z=283+Math.cos(x*.009)*25;
   box(m.concrete,x,10,z,12,20,8);box(m.sand,x,20.35,z-8,12,.7,20);
   box(m.dark,x,21.4,z+2,12,.12,.12);column(m.dark,x-5.5,20.8,z+2,.08,1.5);
-  if(i%3===0){tree(x,z-15,.9);bench(x+4,z-17);lamp(x+5,z-3)}
+  if(i%3===0){palm(x,z-15);bench(x+4,z-17);lamp(x+5,z-3)}
  }
  // CBD: asymmetric skyline with lower foreground workplaces and shared pedestrian courts.
  office(92,-192,48,44,116,0);office(175,-195,39,42,94,1);office(264,-164,46,50,77,2);
@@ -68,8 +75,12 @@ export function makeArchitecture():Part[]{
  slab(-206,-165,64,66,m.grass);for(let i=0;i<4;i++)tree(-225+i*13,-139,.8);
  slab(-188,-165,40,27,m.green);for(const side of [-1,1]){box(m.white,-188,20.56,-165+side*12.5,37,.05,.18);box(m.white,-188+side*18.5,20.56,-165,.18,.05,25);box(m.white,-188+side*18,22,-165,.16,3,5);box(m.white,-188+side*18,23.5,-165,1,.15,5)}box(m.white,-188,20.58,-165,.16,.06,25);
  box(m.sand,-209,23.5,-94,100,7,22);roof(-209,29,-94,105,4,28);entry(-209,-82,9);
+ for(let x=-250;x<-160;x+=12){box(m.glass,x,23.5,-82.7,5,3,.3);box(m.bronze,x,25.3,-81.7,7,.18,2.5);}
  for(let i=0;i<8;i++){box([m.terracotta,m.bronze,m.green][i%3],-251+i*12,23,-81,6,3,.3)}
  slab(-271,-91,26,27,m.sand);for(let i=0;i<3;i++){column(m.red,-280+i*7,22,-88,.12,4);box(m.bronze,-280+i*7,24,-88,1,.2,6)}
+ for(const z of [-217,-117])for(let y=25;y<35;y+=3.5){box(m.glass,-265,y,z,14,2,.25);for(let x=-271;x<=-259;x+=4)box(m.white,x,y,z+.2,.22,2.5,.4);}
+ for(const x of [-255,-235,-215,-195,-175]){box(m.concrete,x,37.2,-221,5,1.5,5);box(m.glass,x,38,-221,4,.12,4);}
+ for(let x=-248;x<-164;x+=14){box(m.bronze,x,21.5,-140,5,.25,.7);box(m.concrete,x,20.8,-140,4,1,.5);}
  // Knowledge archive: two wings enclosing a public reading courtyard, clerestory roof.
  slab(-215,65,148,82);box(m.stone,-220,28,47,116,16,26);box(m.stone,-271,26,75,18,12,42);
  box(m.glass,-220,28,60.3,108,11,.4);for(let x=-271;x<-166;x+=7)box(m.bronze,x,28,61,.8,16,1.7);
@@ -81,6 +92,7 @@ export function makeArchitecture():Part[]{
   box(c,x,26.8,z,13.4,13.6,29);roof(x,35,z,14,5,32);box(m.white,x,32.9,z+15,13.6,.65,1);
   box(m.dark,x,22.4,z+14.7,10,4.7,.25);box(m.sand,x,25.6,z+17,14,.4,5);
   for(const a of [-1,1]){box(m.white,x+a*6,22.8,z+17,.55,5.7,.55);box(m.glass,x+a*3.3,29.2,z+14.7,2.2,3.3,.2);for(const side of [-1,1])box(m.green,x+a*3.3+side*1.45,29.2,z+15, .55,3.5,.3)}
+  for(let a=-6;a<=6;a+=1.5)box(m.terracotta,x+a,35.2,z,.13,.15,30);
   box(m.white,x,27,z+15,13,.35,.65);box(m.terracotta,x,25.4,z+18.8,11,.3,1.8);slab(x,z+18,14,7);
   box(m.bronze,x,24.4,z+14.95,5,.7,.25);box(m.white,x,27.2,z+15.8,10,.25,2);for(const a of [-1,1]){box(m.white,x+a*3.3,31.2,z+15.2,3.4,.35,.7);box(m.white,x+a*3.3,27.4,z+15.2,3.4,.35,.7)}
  };
@@ -93,10 +105,19 @@ export function makeArchitecture():Part[]{
  box(m.dark,-85,53,117.6,6,8,.2);column(m.sand,-85,20.4,142,18,.5);
  // Temple: enclosed forecourt, red colonnade, layered eaves and a modest gateway.
  slab(-76,202,98,52);box(m.sand,-76,23,183,70,6,1);box(m.stone,-76,24,201,62,8,28);
- for(const side of [-1,1]){box(m.sand,-76+side*42,23,202,1.5,6,48);for(let i=0;i<5;i++)column(m.red,-102+i*13,24,214,.45,8)}
- roof(-76,31,201,75,5,39,m.terracotta);roof(-76,35.5,198,50,5,25,m.terracotta);
+ for(const side of [-1,1]){box(m.sand,-76+side*42,23,202,1.5,6,48);for(let i=0;i<5;i++)column(m.red,-102+i*13,24,218,.45,8)}
+ curvedRoof(-76,30,201,75,6,39);curvedRoof(-76,35.5,198,50,5,25);
  box(m.bronze,-76,38,198,51,.55,1);for(const side of [-1,1]){box(m.bronze,-76+side*34,32,201,6,.6,40,side*.06)}
- for(const side of [-1,1])column(m.red,-76+side*10,24,226,.6,8);roof(-76,29,226,27,3,8,m.terracotta);
+ for(const side of [-1,1])column(m.red,-76+side*10,24,226,.6,8);curvedRoof(-76,29,226,27,3,8);
+ // Timber screens, recessed doors and a raised stone threshold in the temple forecourt.
+ for(let x=-100;x<=-50;x+=10){box(m.red,x,24,215.2,6,6,.4);for(let i=-2;i<=2;i++)box(m.bronze,x+i,24,215.5,.12,5.5,.18);}
+ for(let i=0;i<5;i++)box(m.sand,-76,20.3+i*.16,222-i*.5,28,.3,.6);
+ column(m.bronze,-76,21.3,220,1.2,1.7);
+ // Tower lancets, bell louvres and recessed stone portals, visibly distinct from offices.
+ arch(m.dark,-85,25,117.8,5,8,.5);arch(m.sand,-85,54,117.7,8,10,.3);arch(m.dark,-85,54,117.9,6.5,8.8,.3);
+ for(let y=51;y<57;y+=.7)box(m.bronze,-85,y,118.1,6,.15,.5);
+ for(const side of [-1,1])for(let i=0;i<5;i++)arch(m.glass,-85+side*24.25,28,54+i*11,3,6,.35,Math.PI/2);
+ for(const side of [-1,1]){arch(m.glass,-85+side*17,26,102,4,6,.4);box(m.concrete,-85+side*7,32,117.9,1,23,1.4);}
  // Waterfront commercial hall and design offices: open arcade, roof garden, skylights.
  slab(180,139,279,155);box(m.stone,183,27,160,245,14,68);box(m.glass,183,27,195,233,10,.5);
  for(let x=65;x<305;x+=10)box(m.white,x,27,197,.7,14,3);
@@ -107,7 +128,7 @@ export function makeArchitecture():Part[]{
  // Residential edge: slab blocks with balconies, planted decks and smaller courtyard homes.
  for(let i=0;i<4;i++){
   const x=-302+i*64,z=-331-(i%2)*13,h=29+(i%2)*14;slab(x,z,53,57);
-  box(m.stone,x,20+h/2,z,40,h,25);box(m.glass,x,21+h/2,z+13,35,h-3,.3);
+  box(m.concrete,x,17,z,53,6,57);box(m.stone,x,20+h/2,z,40,h,25);box(m.glass,x,21+h/2,z+13,35,h-3,.3);
   for(let y=24;y<20+h;y+=3.3){box(m.white,x,y,z+16,43,.35,6);box(m.bronze,x,y+1,z+18.5,43,.9,.2)}
   for(let a=-18;a<20;a+=9)box(m.white,x+a,21+h/2,z+16,.4,h,6);
   box(m.green,x,20+h+.4,z,39,.8,25);tree(x+24,z+21,.9);
@@ -125,5 +146,7 @@ export function makeArchitecture():Part[]{
  for(const [x,z] of [[-20,-65],[320,-103],[-318,96]]){box(m.glass,x,22,z,10,3.5,.15);box(m.white,x,24,z+2,13,.35,5);for(const a of [-1,1])column(m.dark,x+a*5,22,z+3,.12,4);bench(x,z+1)}
  for(let x=-310;x<330;x+=33){for(const z of [-264,17]){if(Math.abs(x)<20)continue;tree(x,z,.8);lamp(x+8,z)}}
  for(let z=-240;z<220;z+=35){tree(320,z,.85);lamp(328,z);tree(-320,z,.85)}
+ for(let x=-308;x<320;x+=33)for(const z of [-264,17]){if(Math.abs(x)<20)continue;box(m.dark,x,20.55,z,3,.07,3);box(m.sand,x,20.61,z,2.7,.08,2.7);}
+ for(let x=-300;x<320;x+=24){box(m.dark,x,20.4,222,1.1,.04,.6);}
  return p;
 }

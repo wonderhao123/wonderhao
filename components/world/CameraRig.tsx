@@ -6,6 +6,7 @@ import type {OrbitControls as Controls} from 'three-stdlib';
 import * as THREE from 'three';
 import {sites,terrainHeight} from '@/lib/world/city-plan';
 import {makeArchitecture} from '@/lib/world/city-architecture';
+import spec from '@/lib/world/landmark-spec.json';
 import {cityViews,projectBuildings} from '@/lib/world/city-buildings';
 import type {SceneProps,CameraSnapshot} from './IslandScene';
 type Props=SceneProps;
@@ -33,8 +34,8 @@ export function CameraRig({p}:{p:Props}){
   if(changed&&previousMode.current==='surface'&&!p.command.instant)beforeMode.current={version:3,position:position.toArray(),target:target.toArray(),zoom:1,view:'surface'};
   if(changed&&p.command.instant&&p.command.type==='focus')beforeMode.current=null;
   if(p.command.type==='restore'&&p.command.snapshot?.version===3&&p.command.snapshot.view===mode){target.fromArray(p.command.snapshot.target);position.fromArray(p.command.snapshot.position)}
-  else if(mode==='underwater'&&(changed||p.command.type==='focus')){target.fromArray(scene==='observatory'?[550,-14,560]:[530,-10,470]);position.copy(target).add(new THREE.Vector3(20,30,27))}
-  else if(changed&&mode!=='surface'){target.set(80,mode==='b1'?71:65,-480);position.set(125,113,-380)}
+  else if(mode==='underwater'&&(changed||p.command.type==='focus'||p.command.type==='home')){target.fromArray(scene==='observatory'?[550,-14,560]:[530,-10,470]);position.copy(target).add(new THREE.Vector3(24,9,32))}
+  else if(mode!=='surface'&&(changed||p.command.type==='home')){target.set(80,mode==='b1'?71:65,-480);position.set(125,113,-380)}
   else if(changed&&beforeMode.current&&!(p.command.type==='focus'&&p.command.place!== (previousMode.current==='underwater'?'dive':'commons'))&&p.command.type!=='home'&&p.command.type!=='overview'){target.fromArray(beforeMode.current.target);position.fromArray(beforeMode.current.position)}
   else {
    const cmd=p.command,offset=position.clone().sub(target);
@@ -60,18 +61,18 @@ export function CameraRig({p}:{p:Props}){
   if(travel.current){const t=travel.current,f=1-Math.exp(-Math.min(dt,.06)*7);c.target.lerp(t.target,f);camera.position.lerp(t.position,f);c.update();if(camera.position.distanceTo(t.position)<.1){travel.current=null;snapshot()}else invalidate()}
  });
  return <OrbitControls ref={controls} makeDefault enabled={!p.paused} enableDamping={!p.reduced} dampingFactor={.09}
- minDistance={mode==='surface'?160:mode==='underwater'?8:18} maxDistance={mode==='surface'?3200:220} minPolarAngle={.45} maxPolarAngle={1.42} rotateSpeed={.55}
+ minDistance={mode==='surface'?160:mode==='underwater'?8:18} maxDistance={mode==='surface'?3200:220} minPolarAngle={.45} maxPolarAngle={mode==='surface'?1.7:1.42} rotateSpeed={.55}
  screenSpacePanning={false} mouseButtons={{LEFT:p.rotateMode?THREE.MOUSE.ROTATE:THREE.MOUSE.PAN,MIDDLE:THREE.MOUSE.DOLLY,RIGHT:THREE.MOUSE.ROTATE}} touches={{ONE:p.rotateMode?THREE.TOUCH.ROTATE:THREE.TOUCH.PAN,TWO:THREE.TOUCH.DOLLY_PAN}}
  onStart={()=>{travel.current=null;stopInertia();p.onExplore?.()}} onEnd={snapshot} onChange={()=>{
  if(resetting.current)return;
  settle.current={dirty:true,quiet:0};
  const c=controls.current;if(!c)return;const old=c.target.clone();
- if(mode==='underwater'){c.target.x=THREE.MathUtils.clamp(c.target.x,390,620);c.target.z=THREE.MathUtils.clamp(c.target.z,340,660);c.target.y=THREE.MathUtils.clamp(c.target.y,-18,-5);camera.position.setY(Math.min(45,camera.position.y));}
+ if(mode==='underwater'){c.target.x=THREE.MathUtils.clamp(c.target.x,390,620);c.target.z=THREE.MathUtils.clamp(c.target.z,340,660);c.target.y=THREE.MathUtils.clamp(c.target.y,-18,-5);camera.position.setY(Math.min(-1.5,camera.position.y));}
  else if(mode!=='surface'){c.target.x=THREE.MathUtils.clamp(c.target.x,35,125);c.target.z=THREE.MathUtils.clamp(c.target.z,-520,-440)}
  else{c.target.x=THREE.MathUtils.clamp(c.target.x,-1100,2650);c.target.z=THREE.MathUtils.clamp(c.target.z,-1500,1050)}
  camera.position.add(c.target.clone().sub(old));invalidate();
  if(mode==='surface'){
-  const pos=camera.position,blocked=pos.y<terrainHeight(pos.x,pos.z)+5||obstacles.some(b=>Math.abs(pos.x-b.x)<b.w&&Math.abs(pos.z-b.z)<b.d&&pos.y>b.bottom-3&&pos.y<b.top);
+  const pos=camera.position,sphere=spec.observatory,insideSphere=Math.hypot(pos.x-sphere.center[0],pos.y-sphere.center[1],pos.z-sphere.center[2])<sphere.radius+4,blocked=insideSphere||pos.y<terrainHeight(pos.x,pos.z)+5||obstacles.some(b=>Math.abs(pos.x-b.x)<b.w&&Math.abs(pos.z-b.z)<b.d&&pos.y>b.bottom-3&&pos.y<b.top);
   if(blocked&&safePose.current){camera.position.copy(safePose.current.position);c.target.copy(safePose.current.target);travel.current=null}
   else if(!blocked)safePose.current={position:pos.clone(),target:c.target.clone()};
  }

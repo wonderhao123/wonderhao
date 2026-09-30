@@ -28,7 +28,7 @@ export const roadNetwork: Road[] = [
   {id:'archive-link',points:[N.nw,N.station,N.w,N.archive],width:11},
   {id:'research-link',points:[N.archive,N.w,N.station],width:11},
   {id:'citadel-ascent',points:[N.station,[-410,23,-250],[-435,34,-390],[-380,44,-520],[-230,58,-600],[-60,72,-570],[80,76,-410]],width:8,mountain:true},
-  {id:'citadel-service',points:[N.station,[-340,23,-225],[-250,31,-340],[-100,44,-375],[70,57,-355],[145,64,-480]],width:7,mountain:true},
+  {id:'citadel-service',points:[N.station,[-340,23,-225],[-250,31,-340],[-100,44,-375],[70,57,-355],[155,64,-480]],width:7,mountain:true},
   {id:'passenger-link',points:[N.s,[0,16,310],[100,8,460]],width:14},
   {id:'airport-link',points:[N.e,[720,20,0],[1200,18,-80],N.airport],width:16},
   {id:'reef-link',points:[N.e,[470,13,110],N.dive],width:10},
@@ -85,17 +85,23 @@ export function baseHeight(x:number,z:number){
  const rect=(cx:number,cz:number,w:number,d:number,y:number,blend:number)=>{const dist=Math.max(Math.abs(x-cx)-w/2,Math.abs(z-cz)-d/2);const t=smooth(clamp(dist/blend));h=y*(1-t)+h*t};
  // Sheltered urban bay; continuous quays follow this edge.
  const coast=290+25*Math.cos(x*.009);
- if(x>-390&&x<410)h=Math.min(h,20-(z-coast)*.65);
- if(x>400&&x<700)h=Math.min(h,12-(z-285)*.22);
+ const quayMask=smooth(clamp((x+440)/60))*smooth(clamp((460-x)/60));
+ h-=Math.max(0,h-(20-(z-coast)*.65))*quayMask;
+ const eastMask=smooth(clamp((x-370)/70))*smooth(clamp((740-x)/70));
+ h-=Math.max(0,h-(12-(z-285)*.22))*eastMask;
  h+=60*Math.exp(-(((x-80)/210)**2+((z+480)/180)**2));
  rect(0,-35,735,525,20,25);
- rect(80,-480,112,112,76,34);
+ for(let i=0;i<4;i++)rect(-302+i*64,-331-(i%2)*13,55,59,20,18);
+ const summit=Math.hypot(x-80,z+480),summitBlend=smooth(clamp((summit-70)/32));
+ const pad=76-Math.max(0,summit-50)*.55;h=pad*(1-summitBlend)+h*summitBlend;
  rect(2380,0,420,2620,14,65);rect(2070,-80,260,470,14,45);
  rect(100,490,290,115,8,20);rect(-730,140,520,180,9,35);rect(480,270,140,85,7,18);
  // Ship approaches and habitat must stay below sea level, including their hull footprints.
  if(z>545&&x>-180&&x<280)h=Math.min(h,-14-(z-545)*.025);
  if(z>230&&x>-1040&&x< -470)h=Math.min(h,-12-(z-230)*.035);
  if(z>320&&x>365&&x<700)h=Math.min(h,-5-(z-320)*.055);
+ // Excavated spherical observatory basin, smoothly graded into the surrounding seabed.
+ const basin=smooth(clamp((Math.hypot(x-480,z-390)-38)/34));h=Math.min(h,-40)*(1-basin)+h*basin;
  const w=channel(x,z);if(w.d<w.width/2+30){const t=smooth(clamp((w.d-w.width/2)/30));h=(w.y-2)*(1-t)+h*t}
  return h;
 }
@@ -108,10 +114,11 @@ export function terrainHeight(x:number,z:number){
    if(!nearest||q.d<nearest.d)nearest={...q,width:b.r.width,blend:b.r.mountain?32:12};
   }
  }
- if(nearest&&nearest.d<nearest.width/2+nearest.blend&&!(w.d<w.width/2+6&&nearest.y>w.y+3)){
-  const t=smooth(clamp((nearest.d-nearest.width/2-3)/nearest.blend));h=(nearest.y-.18)*(1-t)+h*t;
+ if(nearest&&nearest.d<nearest.width/2+12+nearest.blend&&!(w.d<w.width/2+6&&nearest.y>w.y+3)){
+  const t=smooth(clamp((nearest.d-nearest.width/2-12)/nearest.blend));h=(nearest.y-.18)*(1-t)+h*t;
  }
- if(Math.hypot(x-80,z+480)<55)h=76;
+ const ringRadius=Math.hypot(x-80,z+480);
+ if(ringRadius<50)h=76;else if(ringRadius<70)h=Math.min(h,76-(ringRadius-50)*.55);
  if(Math.abs(x+940)<14&&Math.abs(z-265)<50)h=-2;
  return h;
 }

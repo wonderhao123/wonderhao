@@ -1,5 +1,7 @@
 # WONDERHAO 城市重构 — 实施与验收记录
 
+**历史记录：以下为 7bba685f 的上一轮结果。圆盘解释已被用户否定；当前完整球体与本轮验证见 `WORLD-VISUAL-UPGRADE.md`，不得把下表沿用为本轮结果。**
+
 日期：2026-09-30。工作目录：`/Users/haohao/Projects/wonderhao`。本次没有部署，也没有升级依赖。
 
 ## 结果与状态

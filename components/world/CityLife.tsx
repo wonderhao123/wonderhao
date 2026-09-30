@@ -4,6 +4,7 @@ import {useFrame} from '@react-three/fiber';
 import * as THREE from 'three';
 import {busState,aircraftState,vesselSpecs,vesselState,along} from '@/lib/world/city-life';
 import {terrainHeight,sampleRoad,type V3} from '@/lib/world/city-plan';
+import {LandmarkAsset} from './LandmarkAsset';
 export type Clock=MutableRefObject<number>;
 function Box({p,s,c,r=0}:{p:V3;s:V3;c:string;r?:number}){return <mesh position={p} rotation={[0,r,0]} castShadow><boxGeometry args={s}/><meshStandardMaterial color={c} roughness={.65}/></mesh>}
 export function Aircraft({scale=1}:{scale?:number}){
@@ -27,7 +28,7 @@ function Plane({index,clock}:{index:number;clock:Clock}){
 export function Ship({kind=0}:{kind?:number}){
  const s=vesselSpecs[kind],l=s.length,w=s.beam;
  return <group>
-  <mesh scale={[w/2,2.6,l/2]} castShadow><cylinderGeometry args={[1, .75,1,4]}/><meshStandardMaterial color={kind===0?'#405b67':'#527c85'}/></mesh>
+  <group scale={[w,2.6,l]} rotation={[0,Math.PI,0]}><LandmarkAsset name="ship-hull"/></group>
   <Box p={[0,2,0]} s={[w*.82,2,l*.85]} c="#dedfd3"/>
   {Array.from({length:kind===0?6:2},(_,i)=><group key={i}><Box p={[0,4+i*2.8,-l*.05]} s={[w*(.75-i*.04),2.5,l*(.69-i*.065)]} c="#f0eee0"/><Box p={[0,4+i*2.8,l*(.295-i*.0325)]} s={[w*(.68-i*.04),1.3,.12]} c="#466e7c"/>{[-1,1].map(side=><Box key={side} p={[side*w*(.377-i*.02),4+i*2.8,-l*.05]} s={[.1,1.1,l*(.64-i*.065)]} c="#57838c"/>)}</group>)}
   <Box p={[0,kind===0?22:11,-l*.16]} s={[w*.3,5,l*.08]} c="#bd8564"/>

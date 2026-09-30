@@ -15,16 +15,24 @@ if(existsSync(manifestPath)&&JSON.parse(readFileSync(manifestPath)).version===fi
 const planURL=url(compile(planSource));const plan=await import(planURL);
 const {makeRegion}=await import(url(compile(assetSource).replace(/(['"])\.\/city-architecture\1/g,JSON.stringify(url(compile(architectureSource)))).replace(/(['"])\.\/city-plan\1/g,JSON.stringify(planURL))));
 const {CITY,terrainHeight,sampledRoads,streams}=plan;
+// Store height + signed 16-bit X/Z normal components. Y is reconstructed positive.
+// Offline slope sampling prevents hundreds of thousands of survey calls during first paint.
+function terrainBuffer(heights,point){
+ const count=heights.length,buffer=new ArrayBuffer(count*8);new Float32Array(buffer,0,count).set(heights);
+ const normals=new Int16Array(buffer,count*4,count*2);
+ for(let i=0;i<count;i++){const [x,z]=point(i),nx=terrainHeight(x-1,z)-terrainHeight(x+1,z),nz=terrainHeight(x,z-1)-terrainHeight(x,z+1),length=Math.hypot(nx,2,nz);normals[i*2]=Math.round(nx/length*32767);normals[i*2+1]=Math.round(nz/length*32767);}
+ return Buffer.from(buffer);
+}
 const tiles=[];
 for(let iz=0;iz<CITY.depth/CITY.tile;iz++)for(let ix=0;ix<CITY.width/CITY.tile;ix++){
  const x=-CITY.width/2+ix*CITY.tile,z=-CITY.depth/2+iz*CITY.tile;
- for(const n of [16,32,64]){const data=new Float32Array((n+1)**2);for(let j=0;j<=n;j++)for(let i=0;i<=n;i++)data[j*(n+1)+i]=terrainHeight(x+i*256/n,z+j*256/n);writeFileSync(new URL(`${ix}-${iz}-${n}.bin`,root),Buffer.from(data.buffer))}
+ for(const n of [16,32,64]){const data=new Float32Array((n+1)**2);for(let j=0;j<=n;j++)for(let i=0;i<=n;i++)data[j*(n+1)+i]=terrainHeight(x+i*256/n,z+j*256/n);writeFileSync(new URL(`${ix}-${iz}-${n}.bin`,root),terrainBuffer(data,i=>[x+(i%(n+1))*256/n,z+Math.floor(i/(n+1))*256/n]))}
  tiles.push({id:`${ix}-${iz}`,x,z});
 }
 const far=new Float32Array(113*81);for(let j=0;j<=80;j++)for(let i=0;i<=112;i++)far[j*113+i]=terrainHeight(-3584+i*64,-2560+j*64)-.8;
-writeFileSync(new URL('far.bin',root),Buffer.from(far.buffer));
+writeFileSync(new URL('far.bin',root),terrainBuffer(far,i=>[-3584+(i%113)*64,-2560+Math.floor(i/113)*64]));
 const water=new Uint16Array(512*512);for(let j=0;j<512;j++)for(let i=0;i<512;i++)water[j*512+i]=DataUtils.toHalfFloat(terrainHeight(-3584+i/511*7168,-2560+j/511*5120));writeFileSync(new URL('water.bin',root),Buffer.from(water.buffer));
-for(const region of ['town','commons','airport','arrival','works','dive','archive','station','nature']){const parts=makeRegion(region);writeFileSync(new URL(region+'.json',root),JSON.stringify(parts));const far=region==='nature'?parts.filter((_,i)=>Math.floor(i/4)%3===0&&i%4<2):parts.filter(p=>p[5]*p[7]>180);writeFileSync(new URL(region+'-far.json',root),JSON.stringify(far));}
+for(const region of ['town','commons','airport','arrival','works','dive','archive','station','nature']){const parts=makeRegion(region);writeFileSync(new URL(region+'.json',root),JSON.stringify(parts));const far=region==='nature'?parts.filter((_,i)=>Math.floor(i/2)%3===0).map(p=>p[0]===6?[2,...p.slice(1)]:p):parts.filter(p=>p[5]*p[7]>180);writeFileSync(new URL(region+'-far.json',root),JSON.stringify(far));}
 writeFileSync(manifestPath,JSON.stringify({version:fingerprint,tiles}));
 const point=(x,z)=>[640+x*.15,420+z*.135];
 let svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 800" role="img" aria-label="Island districts, airport and harbours"><rect width="1280" height="800" fill="#477b89"/>';

@@ -15,6 +15,8 @@ import {SceneFinish} from './SceneFinish';
 import {CityReflections} from './CityReflections';
 import {CameraRig} from './CameraRig';
 import {CoastalEnvironment} from './CoastalEnvironment';
+import {LandmarkAsset} from './LandmarkAsset';
+import {CoastalSite} from './CoastalSite';
 import {ResearchFacility} from './ResearchFacility';
 import {projectBuildings} from '@/lib/world/city-buildings';
 import {relocation} from '@/lib/world/city-plan';
@@ -29,12 +31,12 @@ export interface SceneProps{
  onTraffic?:(state:string)=>void;pace?:number;weather?:Weather;level?:'b1'|'b2';underwater?:boolean;onExplore?:()=>void;onRegionStatus?:(id:string,status:string)=>void;onMetrics?:(metrics:{fps:number;calls:number;triangles:number})=>void;
 }
 function Landmarks({p,dragged}:{p:SceneProps;dragged:React.RefObject<boolean>}){
- const [labels,setLabels]=useState<string[]>(projectBuildings.map(b=>b.id));const lastLabels=useRef('');const {size}=useThree();
- useFrame(({camera})=>{const occupied:{x:number;y:number}[]=[],visible:string[]=[];for(const id of ['commerce','campus','knowledge','research','studio','frontages','field','workflow']){const b=projectBuildings.find(b=>b.id===id)!;const v=new THREE.Vector3(...b.position);v.y+=b.size[1]/2+8;v.project(camera);const x=(v.x+1)*size.width/2,y=(1-v.y)*size.height/2;if(occupied.some(p=>Math.abs(p.x-x)<155&&Math.abs(p.y-y)<43))continue;occupied.push({x,y});visible.push(id)}const key=visible.join();if(key!==lastLabels.current){lastLabels.current=key;setLabels(visible)}});
+ const [labels,setLabels]=useState<string[]>(projectBuildings.map(b=>b.id));const [inFrame,setInFrame]=useState<string[]>(projectBuildings.map(b=>b.id));const lastLabels=useRef('');const {size}=useThree();
+ useFrame(({camera})=>{const occupied:{x:number;y:number}[]=[],visible:string[]=[],framed:string[]=[];for(const id of ['commerce','campus','knowledge','research','studio','frontages','field','workflow']){const b=projectBuildings.find(b=>b.id===id)!;const v=new THREE.Vector3(...b.position);v.y+=b.size[1]/2+8;v.project(camera);const x=(v.x+1)*size.width/2,y=(1-v.y)*size.height/2;if(v.z< -1||v.z>1||x<26||x>size.width-26||y<75||y>size.height-100)continue;framed.push(id);if(occupied.some(p=>Math.abs(p.x-x)<(size.width<700?52:155)&&Math.abs(p.y-y)<43))continue;occupied.push({x,y});visible.push(id)}const key=visible.join()+'|'+framed.join();if(key!==lastLabels.current){lastLabels.current=key;setLabels(visible);setInFrame(framed)}});
  const [hover,setHover]=useState<PlaceId>();const select=(id:PlaceId,e:ThreeEvent<MouseEvent>)=>{e.stopPropagation();if(e.delta<6&&!dragged.current&&!p.paused)p.onPlace(id)};
  return <>{projectBuildings.map(building=><group key={building.id} position={building.position}>
  <mesh onClick={e=>{e.stopPropagation();if(!dragged.current&&e.delta<6&&!p.paused)p.onBuilding(building.id)}} onPointerOver={e=>{e.stopPropagation();document.body.style.cursor='pointer'}} onPointerOut={()=>{document.body.style.cursor=''}}><boxGeometry args={building.size}/><meshBasicMaterial transparent opacity={0} depthWrite={false}/></mesh>
- <Html center position={[0,building.size[1]/2+8,0]} zIndexRange={[18,1]} style={{pointerEvents:p.paused?'none':'auto'}}><button className={`building-marker ${labels.includes(building.id)?"":"is-compact"}`} title={building.name} aria-label={`Explore ${building.name}`} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();p.onBuilding(building.id)}}><span className="building-dot"/><span className="building-marker-name">{building.name}</span><span className="building-marker-arrow" aria-hidden="true">↗</span></button></Html>
+ <Html center position={[0,building.size[1]/2+8,0]} zIndexRange={[18,1]} style={{pointerEvents:p.paused?'none':'auto',display:(inFrame.includes(building.id)&&(size.width>=700||labels.includes(building.id)))?undefined:'none'}}><button className={`building-marker ${labels.includes(building.id)?"":"is-compact"}`} title={building.name} aria-label={`Explore ${building.name}`} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();p.onBuilding(building.id)}}><span className="building-dot"/><span className="building-index" aria-hidden="true">{projectBuildings.indexOf(building)+1}</span><span className="building-marker-name">{building.name}</span><span className="building-marker-arrow" aria-hidden="true">↗</span></button></Html>
  </group>)}{places.filter(place=>['commons','arrival','airport','works','dive'].includes(place.id)).map(place=><group key={place.id} position={place.position}>
  <mesh position={[0,10,0]} visible={false} onClick={e=>select(place.id,e)} onPointerOver={e=>{e.stopPropagation();setHover(place.id);p.onHover(place.id);document.body.style.cursor='pointer'}} onPointerOut={()=>{setHover(undefined);p.onHover(undefined);document.body.style.cursor=''}}>
  <boxGeometry args={place.id==='commons'?[104,24,104]:place.id==='airport'?[140,32,220]:[80,24,70]}/><meshBasicMaterial/>
@@ -62,13 +64,13 @@ function World({p}:{p:SceneProps}){
  });
  return <>
  <CameraRig p={p}/><CityReflections dusk={p.dusk}/><ContextListener onFailure={p.onFailure}/><CoastalEnvironment clock={clock} dusk={p.dusk} low={p.low} underwater={p.underwater} weather={p.weather??'sunny'}/>
- {p.underwater?<group position={relocation.dive}><Underwater clock={clock} low={p.low}/></group>:<>
- <CityTerrain level={p.level??'exterior'} low={p.low} onFailure={p.onFailure}/><RoadsAndRivers/>
+ {p.underwater?<><group position={relocation.dive}><Underwater clock={clock} low={p.low} onStatus={status}/></group><ResearchFacility low={p.low} dusk={p.dusk} onStatus={status}/></>:<>
+ <CityTerrain clock={clock} weather={p.weather} level={p.level??'exterior'} low={p.low} onFailure={p.onFailure}/><RoadsAndRivers level={p.level}/><CoastalSite dusk={p.dusk}/>
  <CoastalWater timeRef={clock} dusk={p.dusk} weather={p.weather} animate={!p.paused&&!p.reduced&&!p.low}/>
  {near.map(id=>id==='commons'&&p.level?null:<CityRegion key={id} detail={id==='nature'?!p.low:!wide||id==='commons'} clock={clock} weather={p.weather} id={id} dusk={p.dusk} onStatus={status}/>)}
  {p.level&&<group position={relocation.commons}><CitadelInterior level={p.level}/></group>}
  <CityLife clock={clock} region={p.selected==='atelier'?'town':p.selected??region} low={p.low}/>
- {!p.level&&<><ResearchFacility dusk={p.dusk}/><Landmarks p={p} dragged={dragged}/></>}
+ {!p.level&&<><ResearchFacility low={p.low} dusk={p.dusk} onStatus={status}/><group position={[80,76,-480]}><LandmarkAsset name="ring" low={p.low} dusk={p.dusk} onStatus={status}/></group><Landmarks p={p} dragged={dragged}/></>}
  {p.selected==='works'&&<group position={[-770,9,300]} scale={2}><group position={[-73,-4,-30]}><Crane step={p.crane}/></group></group>}
  {p.selected==='atelier'&&<group position={[145,20,150]} scale={3}><group position={[40,-5,-46]}><Optical value={p.prism}/></group></group>}
  </>}

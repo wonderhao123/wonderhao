@@ -5,9 +5,10 @@ export type Region='town'|'commons'|'airport'|'arrival'|'works'|'dive'|'archive'
 export function makeRegion(region:Region):Part[]{
  if(region==='town')return makeArchitecture();
  if(region==='archive'||region==='station')return [];
+ const offset=region in relocation&&region!=='commons'?relocation[region as keyof typeof relocation]:null;
  const parts:Part[]=[];const b=(c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0)=>parts.push([0,c,x,y,z,w,h,d,r]);
  const cyl=(c:string,x:number,y:number,z:number,r:number,h:number)=>parts.push([1,c,x,y,z,r,h,r,0]);
- const tree=(x:number,z:number,i:number,s=1)=>{const y=terrainHeight(x,z),c=['#8fa65f','#678b59','#aec57d','#75995e'][i%4];cyl('#8c8064',x,y+2.5*s,z,.3*s,5*s);parts.push([2,c,x,y+7*s,z,4*s,3.5*s,4*s,hash(i)*6]);for(const side of [-1,1])parts.push([2,c,x+side*2.6*s,y+(5.6+hash(i+side))*s,z+side*1.6*s,2.8*s,2.6*s,3.1*s,hash(i+side)*6]);};
+ const tree=(x:number,z:number,i:number,s=1)=>{const y=terrainHeight(x+(offset?.[0]??0),z+(offset?.[2]??0))-(offset?.[1]??0),c=['#557a43','#416b42','#6b8b50','#4d7649'][i%4];cyl('#8c8064',x,y+2.5*s,z,.3*s,5*s);parts.push([6,c,x,y+6*s,z,5*s,4*s,5*s,hash(i)*6]);};
  const pavement=(x:number,z:number,w:number,d:number,y=20)=>{b('#cdd0bd',x,y+.14,z,w,.28,d);};
  const building=(x:number,z:number,w:number,d:number,floors:number,color='#ecece0',base=20)=>{
  const h=floors*3.5; b('#b8bba9',x,base+.35,z,w+2,.7,d+2);b(color,x,base+h/2+.7,z,w,h,d);
@@ -25,18 +26,8 @@ export function makeRegion(region:Region):Part[]{
  const shed=(x:number,z:number,w:number,d:number,y=9)=>{building(x,z,w,d,2,'#dddcc8',y);b('#667e83',x,y+8.4,z,w+2,.5,d+2);for(let i=-1;i<=1;i++)b('#8a9a98',x+i*w/4,y+2.3,z+d/2+.2,5,4,.25)};
  if(region==='commons'){
   const [x,y,z]=sites.commons;
-  for(let i=0;i<4;i++){cyl('#b9bcb3',x,y-1.5-i*2,z,54+i*4,2);}
-  for(let i=0;i<12;i++)b('#e4dfcf',x,y+.1-i*.45,z+63+i*1.5,20,.5,1.5);
-  // The superstructure is centred on the same survey anchor as the cutaway.
-  for(let i=0;i<128;i++){
-   const a=i*Math.PI*2/128,s=Math.sin(a),c=Math.cos(a),r=-a;
-   b('#efeee8',x+s*42,y+5.5,z+c*42,2.45,10,12,r);
-   for(const rad of [48.06,35.93]){b('#36515e',x+s*rad,y+3.2,z+c*rad,2.15,2.2,.2,r);b('#496574',x+s*rad,y+7.3,z+c*rad,2.15,2.2,.2,r);}
-   for(const h of [.4,10.7])b('#A66BFF',x+s*48.25,y+h,z+c*48.25,2.45,.18,.25,r);
-   b('#f9f8ef',x+s*42,y+10.9,z+c*42,2.5,.25,12.8,r);
-  }
   pavement(x,z+60,45,20,y);b('#293d50',x,y+3,z+48,12,6,1);b('#f6f5ee',x,y+7,z+56,18,.6,16);b('#A66BFF',x,y+7.4,z+63.8,18,.16,.2);
-  for(let i=0;i<16;i++){const a=i*Math.PI/8;cyl('#7e9f73',x+Math.sin(a)*27,y+1,z+Math.cos(a)*27,3,2)}
+  for(let i=0;i<12;i++){const a=i*Math.PI/6;tree(x+Math.sin(a)*26,z+Math.cos(a)*26,i,.65)}
   cyl('#43616b',x,y+.25,z,10,.5);cyl('#9bd0c7',x,y+.6,z,8,.3);
  }
  if(region==='airport'){
@@ -98,6 +89,5 @@ export function makeRegion(region:Region):Part[]{
   }
 
  }
- const offset=region in relocation&&region!=='commons'?relocation[region as keyof typeof relocation]:null;
  return offset?parts.map(p=>[p[0],p[1],p[2]+offset[0],p[3]+offset[1],p[4]+offset[2],...p.slice(5)] as Part):parts;
 }

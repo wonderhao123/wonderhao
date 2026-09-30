@@ -31,7 +31,7 @@ The default build targets the existing Cloudflare/OpenNext configuration. Static
 
 ## Rebuild the world
 
-The world is generated entirely in code. Edit geography in `lib/world/city-plan.ts`, buildings in `lib/world/city-assets.ts`, and transport in `lib/world/city-life.ts`. Repeated facades, vegetation and street furniture use shared geometry. Terrain, regional objects and the fallback map come from the same survey.
+The world combines deterministic TypeScript geography with original Blender-generated hero assets. Edit geography in `lib/world/city-plan.ts`, buildings in `lib/world/city-assets.ts`, and transport in `lib/world/city-life.ts`. Repeated facades, vegetation and street furniture use shared geometry. Terrain, regional objects and the fallback map come from the same survey.
 
 ```sh
 npm run generate:city
@@ -56,4 +56,15 @@ World → Zone → Content Scene → Project is encoded by `place`, `scene` and 
 
 The inhabited portfolio precinct is now approximately 760 × 680 m, with legacy airport/harbour infrastructure reachable through the place directory. The numerical outer survey remains 7.168 × 5.120 km for the existing runway and shipping routes. Empty-water terrain tiles are lazy-loaded; this is not the inhabited land area. Camera input lives in `CameraRig.tsx`, sky in `CoastalEnvironment.tsx`, water in `CoastalWater.tsx` and the fixed offshore observatory in `ResearchFacility.tsx`. All 13 original cases keep their slugs and content.
 
-If the host blocks Turbopack's local worker port, the supported verification fallback is `npm run build:static -- --webpack`, followed by `npx opennextjs-cloudflare build --skipNextBuild` to package the verified build. Neither command deploys. Actual validation, remaining visual limitations and benchmark conditions are recorded in `output/playwright/city-rebuild/AUDIT.md`.
+If the host blocks Turbopack's local worker port, the supported verification fallback is `npm run build:static -- --webpack`, followed by `npx opennextjs-cloudflare build --skipNextBuild` to package the verified build. Neither command deploys. Actual validation, remaining visual limitations and benchmark conditions are recorded in `WORLD-VISUAL-UPGRADE.md` (current) and `CITY-REBUILD-AUDIT.md` (historical).
+
+## Editable landmark assets
+
+`lib/world/landmark-spec.json` records metre-scale dimensions. Rebuild the sphere, Ring, pressure habitat and swept ship hull with the installed Blender:
+
+```sh
+/Applications/Blender.app/Contents/MacOS/Blender --background --python scripts/build-landmarks.py
+npm run generate:city
+```
+
+On other platforms, use the equivalent Blender executable. The deterministic Python source is retained instead of redundant `.blend` backups. GLBs and reduced-detail variants live in `public/world/models`; `landmark-version.ts` is generated after successful export. Normal site builds use these checked-in resources and do not launch Blender. Provenance and coordinate conventions are in `public/world/models/README.md`.
