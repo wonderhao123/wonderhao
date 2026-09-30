@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WONDERHAO",
-  description: "Feel free to explore and connect with me!",
+  title: "WONDERHAO — An independent digital world",
+  description:
+    "An island of software, considered interfaces and playful experiments. Explore the world and work of Carl Chong.",
 };
 
 export default function RootLayout({

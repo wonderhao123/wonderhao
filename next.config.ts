@@ -5,6 +5,7 @@ const isStaticExport = process.env.STATIC_EXPORT === "true";
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  env: { NEXT_PUBLIC_BASE_PATH: isStaticExport ? "/wonderhao" : "" },
   output: isStaticExport ? "export" : "standalone",
   basePath: isStaticExport ? "/wonderhao" : "",
   assetPrefix: isStaticExport ? "/wonderhao/" : "",
@@ -15,6 +16,6 @@ const nextConfig: NextConfig = {
 
 export default nextConfig;
 
-if (!isStaticExport) {
+if (!isStaticExport && process.env.NODE_ENV === "development") {
   initOpenNextCloudflareForDev();
 }

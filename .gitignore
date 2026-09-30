@@ -25,7 +25,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # Local env files
-.env*.local
+.env
+.env.*
+!.env.example
 
 # Vercel
 .vercel
@@ -33,3 +35,9 @@ yarn-error.log*
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local render and test output
+*.blend[0-9]
+/assets/world/
+/playwright-report/
+/test-results/
