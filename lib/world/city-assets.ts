@@ -1,10 +1,13 @@
-import { sites, terrainHeight, channel, sampledRoads, hash, airport, segment } from './city-plan';
+import {makeArchitecture} from './city-architecture';
+import { sites, terrainHeight, channel, sampledRoads, hash, airport, segment, relocation } from './city-plan';
 export type Part=[shape:number,color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,ry:number];
 export type Region='town'|'commons'|'airport'|'arrival'|'works'|'dive'|'archive'|'station'|'nature';
 export function makeRegion(region:Region):Part[]{
+ if(region==='town')return makeArchitecture();
+ if(region==='archive'||region==='station')return [];
  const parts:Part[]=[];const b=(c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0)=>parts.push([0,c,x,y,z,w,h,d,r]);
  const cyl=(c:string,x:number,y:number,z:number,r:number,h:number)=>parts.push([1,c,x,y,z,r,h,r,0]);
- const tree=(x:number,z:number,i:number,s=1)=>{const y=terrainHeight(x,z);cyl('#8c8064',x,y+2*s,z,.35*s,4*s);parts.push([i%4?2:3,['#8fa65f','#678b59','#aec57d','#75995e'][i%4],x,y+6*s,z,3*s,5*s,3*s,hash(i)*6]);};
+ const tree=(x:number,z:number,i:number,s=1)=>{const y=terrainHeight(x,z),c=['#8fa65f','#678b59','#aec57d','#75995e'][i%4];cyl('#8c8064',x,y+2.5*s,z,.3*s,5*s);parts.push([2,c,x,y+7*s,z,4*s,3.5*s,4*s,hash(i)*6]);for(const side of [-1,1])parts.push([2,c,x+side*2.6*s,y+(5.6+hash(i+side))*s,z+side*1.6*s,2.8*s,2.6*s,3.1*s,hash(i+side)*6]);};
  const pavement=(x:number,z:number,w:number,d:number,y=20)=>{b('#cdd0bd',x,y+.14,z,w,.28,d);};
  const building=(x:number,z:number,w:number,d:number,floors:number,color='#ecece0',base=20)=>{
  const h=floors*3.5; b('#b8bba9',x,base+.35,z,w+2,.7,d+2);b(color,x,base+h/2+.7,z,w,h,d);
@@ -20,43 +23,10 @@ export function makeRegion(region:Region):Part[]{
  };
  const lamp=(x:number,z:number,y:number)=>{cyl('#728383',x,y+3,z,.12,6);b('#f5eac7',x+1,y+6,z,2.4,.25,.7)};
  const shed=(x:number,z:number,w:number,d:number,y=9)=>{building(x,z,w,d,2,'#dddcc8',y);b('#667e83',x,y+8.4,z,w+2,.5,d+2);for(let i=-1;i<=1;i++)b('#8a9a98',x+i*w/4,y+2.3,z+d/2+.2,5,4,.25)};
- if(region==='town'){
-  // Four legible neighbourhoods, each with a planted court and open perimeter streets.
-  for(const [bx,bz] of [[-180,-120],[180,-120],[-180,120],[180,120]]){
-   pavement(bx,bz,310,198);b('#9fbd74',bx,20.32,bz,260,.12,152);
-   for(let i=0;i<5;i++){const x=bx-108+i*54;building(x,bz-54,39,28,5+i%4,['#eeeadd','#e5e7dc','#f1ecda'][i%3]);}
-   for(let i=0;i<4;i++){const x=bx-95+i*62;building(x,bz+54,40,27,bz>0?3:6,'#e7eadf');}
-   for(let i=0;i<10;i++)tree(bx-130+i*28,bz+12,i,1.35);
-   for(let i=0;i<10;i++)tree(bx-130+i*28,bz-16,i+3,.95);
-   pavement(bx,bz,270,5);pavement(bx,bz,5,145);
-   for(let i=0;i<4;i++){b('#b5a68b',bx-80+i*52,20.7,bz+25,5,.65,1.2);lamp(bx-80+i*52,bz-24,20)}
-  }
-  // Public square and a shaded hawker pavilion, with individual stalls and tables.
-  pavement(0,0,62,62);cyl('#ccd9c7',0,20.5,0,19,1);cyl('#68aaa6',0,21.1,0,13,.35);
-  for(let i=0;i<12;i++){const a=i*Math.PI/6;tree(Math.cos(a)*27,Math.sin(a)*27,i,.65)}
-  pavement(-185,118,76,46);b('#eceddb',-185,25.7,118,72,.5,42);
-  for(let i=0;i<8;i++){const x=-216+i*9;cyl('#e3e3d8',x,23,100,.24,6);b(['#bd704f','#88a78e','#d6ae72'][i%3],x,22,102,7.2,3,5);cyl('#bbaa84',x,21,127,1.6,1);}
-  // Shaded shop edges, crossings and roof gardens make the blocks usable at street scale.
-  for(const x of [-360,0,360])for(const z of [-240,0,240])for(const side of [-1,1])for(let stripe=0;stripe<7;stripe++){
-   b('#eee9d9',x-4.5+stripe*1.5,20.55,z+side*14,.7,.04,4);
-   b('#eee9d9',x+side*14,20.55,z-4.5+stripe*1.5,4,.04,.7);
-  }
-  for(let i=0;i<22;i++){const x=-320+i*30;for(const z of [-222,222]){tree(x,z,i+11,.9);lamp(x+10,z,20)}}
-  for(let i=0;i<6;i++){const x=75+i*42;building(x,207,30,12,2,'#e8dac1');b(['#81a696','#c58d70','#b6ad7b'][i%3],x,24.4,216,28,.3,5);}
-  // School, clinic, fire station and sports ground form the civic edge.
-  building(-445,120,55,24,3,'#efe4c9');pavement(-448,190,100,64);b('#7daa83',-448,20.4,190,90,.1,54);
-  for(const s of [-1,1]){b('#f2eee0',-448,20.48,190+s*25,87,.07,.35);b('#f2eee0',-448+s*43,20.48,190,.35,.07,50)}
-  building(445,110,44,27,3,'#f4f4e8');b('#cf7961',445,29,124,6,1,.3);b('#cf7961',445,29,124,1,5,.32);
-  shed(455,-90,46,24,20);for(let i=0;i<3;i++)b('#bb654b',440+i*14,22,-75,8,3,2);
-  pavement(-402,142,90,5);pavement(402,130,90,5);pavement(405,-69,100,5);
-  // Twin bus shelters and community market frontage.
-  for(const x of [-27,27]){b('#748f91',x,23.4,55,16,.3,5);for(const z of [53,57])cyl('#82908b',x-6,21.7,z,.12,3.4);b('#b4a385',x,20.7,55,11,.45,1.2)}
-  for(let i=0;i<52;i++){const a=i*Math.PI*2/52;tree(Math.cos(a)*530,Math.sin(a)*350,i,1.1)}
- }
- if(region==='archive'){const [x,y,z]=sites.archive;pavement(x,z,120,100,y);building(x,z,58,35,3,'#dddcca',y);for(let i=0;i<12;i++)tree(x-53+i*10,z-42,i,1.1);b('#e9e7dc',x,y+12,z,67,.5,44);}
- if(region==='station'){const [x,y,z]=sites.station;pavement(x,z,88,80,y);building(x,z,32,23,2,'#e6e8dc',y);cyl('#a5b7b8',x+25,y+12,z-15,2,24);parts.push([2,'#c7d3ce',x+25,y+26,z-15,5,2,5,0]);}
  if(region==='commons'){
   const [x,y,z]=sites.commons;
+  for(let i=0;i<4;i++){cyl('#b9bcb3',x,y-1.5-i*2,z,54+i*4,2);}
+  for(let i=0;i<12;i++)b('#e4dfcf',x,y+.1-i*.45,z+63+i*1.5,20,.5,1.5);
   // The superstructure is centred on the same survey anchor as the cutaway.
   for(let i=0;i<128;i++){
    const a=i*Math.PI*2/128,s=Math.sin(a),c=Math.cos(a),r=-a;
@@ -110,7 +80,7 @@ export function makeRegion(region:Region):Part[]{
   for(let k=0;k<2;k++){const x=-2030+k*185;b('#d7b271',x,28,1405,3,40,3);b('#d7b271',x+16,46,1405,35,2,3);b('#465e64',x+32,34,1405,.2,24,.2)}
  }
  if(region==='dive'){
-  const [x,y,z]=sites.dive;pavement(x,z,130,80,y);building(x-20,z-5,52,24,1,'#f1eee2',y);b('#788e8e',x+36,y+3,z-8,34,.4,25);
+  const [x,y,z]=[1540,7,1650];pavement(x,z,130,80,y);building(x-20,z-5,52,24,1,'#f1eee2',y);b('#788e8e',x+36,y+3,z-8,34,.4,25);
   for(const px of [x+22,x+50])for(const pz of [z-18,z+2])cyl('#e1e5d7',px,y+1.5,pz,.22,3);
   b('#b49d79',x,4,1730,7,.4,100);for(let i=0;i<11;i++){const zz=1690+i*9;for(const xx of [x-3,x+3])cyl('#687d76',xx,1,zz,.2,6)}
   for(let i=0;i<7;i++)b('#cbd2c4',x+3.7,3.8-i*.55,1770,.25,.12,2);
@@ -118,17 +88,16 @@ export function makeRegion(region:Region):Part[]{
  }
  if(region==='nature'){
   const compounds=(['town','commons','airport','arrival','works','dive','archive','station'] as Region[]).flatMap(makeRegion).filter(p=>p[0]===0&&p[5]>12&&p[7]>12);
-  for(let i=0;i<5300;i++){
-   const x=(hash(i+300)-.5)*6600,z=(hash(i+8700)-.5)*4300,y=terrainHeight(x,z);
-   if(y<3||Math.abs(x)<570&&Math.abs(z)<420||Math.abs(x-2380)<360&&Math.abs(z)<1400||Math.hypot(x-80,z+680)<100||channel(x,z).d<35)continue;
+  for(let i=0;i<2100;i++){
+   const x=(hash(i+300)-.5)*2300,z=(hash(i+8700)-.5)*2000-350,y=terrainHeight(x,z);
+   if(y<3||Math.abs(x)<380&&z>-380&&z<330||Math.abs(x-2380)<360&&Math.abs(z)<1400||Math.hypot(x-80,z+480)<100||channel(x,z).d<35)continue;
    if(compounds.some(p=>Math.abs(x-p[2])<p[5]/2+5&&Math.abs(z-p[4])<p[7]/2+5))continue;
    if(Object.values(sites).some(p=>Math.hypot(x-p[0],z-p[2])<115))continue;
    let near=false;for(const r of sampledRoads){for(let k=1;k<r.points.length;k++)if(segment(x,z,r.points[k-1],r.points[k]).d<r.width/2+8)near=true;}if(near)continue;
    tree(x,z,i,1+hash(i)*1.4);
   }
-  // Water, energy and recycling compounds lie on the western service road.
-  pavement(-1260,420,175,175,20);for(let i=0;i<3;i++){cyl('#c3ccc3',-1310+i*48,23,390,18,6);cyl('#71a09b',-1310+i*48,26.1,390,16,.2)}
-  shed(-1260,463,118,37,20);for(let i=0;i<20;i++)b('#466b80',-1330+(i%10)*15,22,495+Math.floor(i/10)*10,12,.3,7,-.08);
+
  }
- return parts;
+ const offset=region in relocation&&region!=='commons'?relocation[region as keyof typeof relocation]:null;
+ return offset?parts.map(p=>[p[0],p[1],p[2]+offset[0],p[3]+offset[1],p[4]+offset[2],...p.slice(5)] as Part):parts;
 }

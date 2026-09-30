@@ -6,19 +6,20 @@
 | ---------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Dialogs          | components/world/Dialog.tsx                    | Native modal dialog, labelled title, initial close-button focus, Escape, focus restoration after inert state clears |
 | World navigation | components/world/WorldApp.tsx                  | Place/scene/project query parameters, history restoration, direct project access                                    |
-| Camera           | components/world/IslandScene.tsx               | Perspective orbit, bounded pan/zoom, surface/interior/water modes, no first-person mode                                             |
+| Camera           | components/world/CameraRig.tsx                 | Horizontal map pan by default, explicit current-target rotation, bounded zoom, interruptible travel and settled snapshots                                             |
 | Pass persistence | lib/world/pass.ts                              | Validated versioned local record, anonymous by default, idempotent stamps                                           |
 | Feedback         | WorldApp live region and local status messages | Success/error feedback never blocks access to work                                                                  |
 | Text input       | WorldPass                                      | Optional nickname, Unicode-safe limit, no personal data requirement                                                 |
 | Settings         | WorldApp                                       | Native checkboxes; quality, dusk, weather and reduced motion saved locally                                                   |
 | Scrollbars       | app/globals.css                                | Global visible scrollbar baseline, modal scroll ownership, forced-colours support                                   |
+| Card lighting    | components/ui/CardLighting.tsx + app/globals.css | `data-card-surface` opts into graphite material; mouse edge tracking, fixed keyboard feedback, static touch appearance and momentary child-action press feedback; no hover-only content |
 | Project content  | lib/world/content.ts                           | One source for directory, overlay and server-readable case page                                                     |
 
 ## First visit and return
 
-Generate one random UUID in the browser. The displayed short ID is a souvenir identifier, not a unique global sequence or credential. Persist nickname, UTC first-arrival time, admission and eight possible stamps. Anonymous entry is one action. First entry records Arrival Harbour and plays a skippable short camera approach to the central town. Reduced motion skips travel. Later visits do not reopen admission.
+Generate one random UUID in the browser. The displayed short ID is a souvenir identifier, not a unique global sequence or credential. Persist nickname, UTC first-arrival time, admission and eight possible stamps. Anonymous entry is one action. First entry records Arrival Harbour and plays a skippable short camera approach to the central town. Reduced motion skips travel. Each new entry to the world shows the existing pass invitation; admission is kept for the current mounted visit. Opening/closing projects and browser-history restoration do not replay it. Direct project entries mark the current visit admitted.
 
-Direct project URLs bypass admission. The pass invitation appears if a first-time visitor subsequently enters the world. A corrupt or unsupported pass is replaced with a valid local pass; unknown stamps are discarded. Storage failures preserve the session and show a local-storage limitation. PNG downloads contain the current pass but cannot restore identity across devices. No database, account, telemetry or fingerprint is used.
+Direct project URLs bypass admission and close back to their content context without opening the invitation. A corrupt or unsupported pass is replaced with a valid local pass; unknown stamps are discarded. Storage failures preserve the session and show a local-storage limitation. PNG downloads contain the current pass but cannot restore identity across devices. No database, account, telemetry or fingerprint is used.
 
 ## Navigation and reading
 
@@ -44,10 +45,16 @@ Unit tests exercise pass parsing, identity stability, duplicate stamps, Unicode 
 
 ## City-state modes and persistence
 
-Eight content destination IDs retain the original six and add `airport` / `dive`. Public facilities remain scenery rather than fictional portfolio cases. `level=b1|b2` is valid only at `commons`; `view=underwater` only at `dive`. Invalid combinations produce a recoverable route. Camera snapshots use version 2; legacy coordinates relocate from the current route.
+Eight content destination IDs retain the original six and add `airport` / `dive`. Public facilities remain scenery rather than fictional portfolio cases. `level=b1|b2` is valid only at `commons`; `view=underwater` only at `dive`. Invalid combinations produce a recoverable route. Camera snapshots use version 3; legacy coordinates relocate from the current route.
 
 Dive gear is a single optional ISO timestamp on the existing version-1 pass. Collection is idempotent and storage failure preserves session access. Only the underwater view requires gear; portfolio cases remain open. Return to shore is always available. B1/B2 have a persistent exterior exit. Mode entry saves the surface camera; exit restores it, while an explicit different destination overrides restoration. No rain or clouds render underwater.
 
 District loading reports progress and offers retry, town and HTML content on failure. The root WebGL boundary and context-loss handler retain the map and directory. The fallback is a schematic generated from the same survey, not a raster substitute for the render.
 
 Transport is deterministic choreography with disjoint runway/taxi time slots and assigned ship lanes/berths. It is not a general traffic simulation. Observation speed is a temporary visitor control, not persisted. Rendering diagnostics stay inside settings. No measurements are transmitted.
+
+## Semantic building navigation
+
+`city-buildings.ts` maps every real project once. A multi-case building opens a native chooser dialog; a single-case building opens the case immediately. Both use `content.ts`, never duplicated case text. Opening a case preserves the current camera; background input is disabled while the dialog is open. Closing restores the saved target/position and the building trigger (or direct directory control). Locate on island resolves the building mapping, not the legacy peripheral district. Surface drag requires more than six CSS pixels to suppress click; pointer capture and cancel end the gesture. Damping completes before the stable history snapshot is saved. Switching mode, opening a dialog and starting a new gesture clear residual inertia while preserving the current pose. Main structural volumes and terrain bound camera movement without changing pan height. Two-finger touch uses pinch plus horizontal pan.
+
+The current brief is the authority for the deliberate changes from orbit-first and first-visit-only admission. Existing category filters, direct routes, weather, contact identity and pass persistence remain. Weather defaults to sunny; explicit stored Auto remains supported.

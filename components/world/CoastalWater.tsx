@@ -2,10 +2,11 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { CITY } from "@/lib/world/city-plan";
+import { CITY,weatherAt,type Weather } from "@/lib/world/city-plan";
 import { cityAsset } from "@/lib/world/assets";
 const survey = {width:CITY.width,depth:CITY.depth,centerZ:0};
-const sunlight:[number,number,number]=[-500,850,400];
+import {SUN_DIRECTION} from '@/lib/world/city-buildings';
+const sunlight=SUN_DIRECTION;
 
 // One wave field drives displacement and normals, so highlights travel with the swell.
 const waves = `
@@ -20,19 +21,19 @@ float noise2(vec2 p){
 vec2 warp(vec2 p){return p+vec2(sin(p.y*.035)*7.,sin(p.x*.043)*5.);}
 float swell(vec2 p,float t){
  p=warp(p);
- return .23*sin(dot(p,vec2(.14,.07))-t*.85)
+ return .42*sin(dot(p,vec2(.033,.021))-t*.55) + .23*sin(dot(p,vec2(.14,.07))-t*.85)
        +.12*sin(dot(p,vec2(-.08,.23))-t*1.12)
        +.065*sin(dot(p,vec2(.39,.27))-t*1.6);
 }
-vec2 slope(vec2 p,float t){
+vec2 slope(vec2 p,float t,float detail){
  vec2 q=p*.85+vec2(-t*.23,t*.12);
  vec2 capillary=vec2(noise2(q+vec2(.3,0.))-noise2(q-vec2(.3,0.)),noise2(q+vec2(0.,.3))-noise2(q-vec2(0.,.3)))*.24;
  p=warp(p);
- return capillary+ .23*vec2(.14,.07)*cos(dot(p,vec2(.14,.07))-t*.85)
+ return capillary*detail+ .42*vec2(.033,.021)*cos(dot(p,vec2(.033,.021))-t*.55)+ .23*vec2(.14,.07)*cos(dot(p,vec2(.14,.07))-t*.85)
        +.12*vec2(-.08,.23)*cos(dot(p,vec2(-.08,.23))-t*1.12)
        +.065*vec2(.39,.27)*cos(dot(p,vec2(.39,.27))-t*1.6)
-       +.025*vec2(1.7,.83)*cos(dot(p,vec2(1.7,.83))-t*2.3)
-       +.018*vec2(-1.1,2.1)*cos(dot(p,vec2(-1.1,2.1))-t*2.7);
+       +detail*.025*vec2(1.7,.83)*cos(dot(p,vec2(1.7,.83))-t*2.3)
+       +detail*.018*vec2(-1.1,2.1)*cos(dot(p,vec2(-1.1,2.1))-t*2.7);
 }
 `;
 const depthCode = `
@@ -57,32 +58,35 @@ void main(){
  gl_Position=projectionMatrix*viewMatrix*p;
 }`;
 const fragmentShader = `
-uniform float time; uniform vec3 deep,shallow,foam,sun,sky;uniform float daylight;
+uniform float time; uniform vec3 deep,shallow,foam,sun,sky;uniform float daylight;uniform float storm;
 varying vec3 waterPosition;
 ${depthCode}
 ${waves}
 void main(){
  vec3 eye=normalize(cameraPosition-waterPosition);
- vec2 p=waterPosition.xz;if(river<.5&&abs(p.x+2190.)<14.&&abs(p.y-1365.)<50.)discard;float depth=waterDepth(p);
+ vec2 p=waterPosition.xz;if(river<.5&&abs(p.x+940.)<14.&&abs(p.y-265.)<50.)discard;float depth=waterDepth(p);
  float attenuation=mix(smoothstep(.1,3.,depth),.65,river);
- vec2 s=slope(p,time)*attenuation;
+ float detailFade=1.-smoothstep(150.,1400.,distance(cameraPosition,waterPosition));
+ vec2 s=slope(p,time,detailFade)*attenuation*(1.+storm*.65);
  vec3 n=normalize(vec3(-s.x,1.,-s.y));
  float facing=max(dot(n,eye),0.);
- float fresnel=.025+.975*pow(1.-facing,5.);
+ float fresnel=.04+.96*pow(1.-facing,5.);
  vec3 reflection=reflect(-eye,n);
  vec3 skyReflection=mix(sky*.65,sky,smoothstep(-.15,.55,reflection.y));
  vec3 color=mix(deep,shallow,exp(-depth*.30)*.85);
  color*=.93+.07*sin(p.x*.09+p.y*.12+time*.2);
- color=mix(color,skyReflection,.07+fresnel*.65);
+ color=mix(color,skyReflection,.08+fresnel*.55);
  vec3 sunRay=normalize(sun*200000.-waterPosition);
  float highlight=max(dot(reflect(-sunRay,n),eye),0.);
  // Broad gloss under a finer, broken sun glitter; the sun matches the scene light.
- color+=vec3(1.,.88,.65)*daylight*mix(1.,.3,river)*(pow(highlight,700.)*.65+pow(highlight,28.)*.025);
+ color+=vec3(1.,.88,.65)*daylight*mix(1.,.3,river)*(pow(highlight,100.)*.45+pow(highlight,18.)*.025);
  float phase=fract(depth*.38-time*.16+swell(p,time)*.12);
  float breaker=(1.-smoothstep(.025,.105,phase))*smoothstep(0.,.25,depth)*(1.-smoothstep(1.8,4.2,depth));
  float flecks=.5+.5*sin(p.x*2.3+sin(p.y*1.8))*sin(p.y*3.1-time*.9);
- float shore=breaker*(.4+.6*flecks)*(1.-river);
- color=mix(color,foam,shore*.72);
+ float contact=1.-smoothstep(.6,2.2,abs(length((p-vec2(480.,397.))/vec2(1.,.30))-34.));
+ float shore=max(breaker*(.4+.6*flecks),contact*.25)*(1.-river);
+ color=mix(color,foam,shore*.52);
+ color=mix(color,color*.72,storm*.4);
  gl_FragColor=vec4(color,1.);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
@@ -93,7 +97,9 @@ function WaterMaterial({
   depthMap,
   river = false,
   timeRef,
+  weather="sunny",
 }: {
+  weather?:Weather;
   dusk: boolean;
   animate: boolean;
   depthMap?: THREE.DataTexture;
@@ -116,6 +122,7 @@ function WaterMaterial({
       sky: { value: new THREE.Color() },
       sun: { value: new THREE.Vector3(...sunlight).normalize() },
       daylight: { value: 1 },
+      storm:{value:0},
     }),
     [depthMap, river],
   );
@@ -125,12 +132,13 @@ function WaterMaterial({
     u.deep.value.set(dusk ? "#102b48" : river ? "#226d70" : "#19566b");
     u.shallow.value.set(dusk ? "#316574" : "#65bea9");
     u.foam.value.set(dusk ? "#7ea5b0" : "#e0efe5");
-    u.sky.value.set(dusk ? "#52718f" : "#b5d8e4");
+    u.sky.value.set(dusk ? "#52718f" : "#84b1c7");
     u.daylight.value = dusk ? 0.09 : 1;
     invalidate();
   }, [dusk, river, invalidate, uniforms]);
   useFrame((_, dt) => {
     if (!ref.current) return;
+    ref.current.uniforms.storm.value=weatherAt(timeRef?.current??0,weather);
     if (animate) ref.current.uniforms.time.value = timeRef ? timeRef.current : ref.current.uniforms.time.value + Math.min(dt,.1);
   });
   return (
@@ -147,12 +155,15 @@ export function RiverWaterMaterial({
   dusk,
   animate,
 }: {
+  weather?:Weather;
   dusk: boolean;
   animate: boolean;
 }) {
   return <WaterMaterial dusk={dusk} animate={animate} river />;
 }
-export function CoastalWater({dusk,animate,timeRef}:{dusk:boolean;animate:boolean;timeRef?:MutableRefObject<number>}) {
+export function CoastalWater({dusk,animate,timeRef,weather}:{dusk:boolean;animate:boolean;timeRef?:MutableRefObject<number>;weather?:Weather}) {
+ const geometry=useMemo(()=>{const g=new THREE.PlaneGeometry(2,2,384,384),a=g.attributes.position;for(let i=0;i<a.count;i++){const x=a.getX(i),y=a.getY(i);a.setXY(i,Math.sign(x)*x*x*9000,Math.sign(y)*y*y*9000)}return g},[]);
+ useEffect(()=>()=>geometry.dispose(),[geometry]);
  const [depth,setDepth]=useState<THREE.DataTexture>();
  const {invalidate}=useThree();
  useEffect(()=>{let alive=true;let texture:THREE.DataTexture|undefined;
@@ -161,5 +172,5 @@ export function CoastalWater({dusk,animate,timeRef}:{dusk:boolean;animate:boolea
    if(alive){setDepth(texture);invalidate()}else texture.dispose();
   }).catch(()=>{});return()=>{alive=false;texture?.dispose()}
  },[invalidate]);
- return <mesh rotation={[-Math.PI/2,0,0]} position={[0,-.08,0]} frustumCulled={false}><planeGeometry args={[24000,24000,256,256]}/><WaterMaterial dusk={dusk} animate={animate} depthMap={depth} timeRef={timeRef}/></mesh>
+ return <mesh geometry={geometry} rotation={[-Math.PI/2,0,0]} position={[0,-.08,0]} frustumCulled={false}><WaterMaterial dusk={dusk} animate={animate} depthMap={depth} timeRef={timeRef} weather={weather}/></mesh>
 }

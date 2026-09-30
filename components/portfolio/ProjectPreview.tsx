@@ -17,14 +17,25 @@ export function ProjectPreview({
     return (
       <div
         className="world-preview"
-        style={{ backgroundImage: `url(${assetPath("/world/procedural-map.svg")})` }}
+        data-card-surface={compact ? undefined : "image"}
+        style={
+          {
+            "--card-image": `url(${assetPath("/world/procedural-map.svg")})`,
+            backgroundImage: compact
+              ? `url(${assetPath("/world/procedural-map.svg")})`
+              : undefined,
+          } as React.CSSProperties
+        }
       >
         <span>A place made of possibilities.</span>
       </div>
     );
   if (project.preview === "gallery")
     return (
-      <div className={`gallery-study ${compact ? "compact" : ""}`}>
+      <div
+        className={`gallery-study ${compact ? "compact" : ""}`}
+        data-card-surface={compact ? undefined : ""}
+      >
         <span className="micro-label">
           INTERFACE STUDIES / {["FORM", "SPACE", "MOTION"][selected]}
         </span>
@@ -86,7 +97,10 @@ export function ProjectPreview({
       n.title.toLowerCase().includes(query.toLowerCase()),
     );
     return (
-      <div className={`demo-window notes-demo ${compact ? "compact" : ""}`}>
+      <div
+        className={`demo-window notes-demo ${compact ? "compact" : ""}`}
+        data-card-surface={compact ? undefined : ""}
+      >
         <div className="demo-chrome">
           <span className="demo-dots">● ● ●</span>
           <span>PRIVATE WORKSPACE</span>
@@ -153,7 +167,10 @@ export function ProjectPreview({
       ? ["Received", "Reserved", "Packed", "Dispatched"]
       : ["Submitted", "Validated", "Reviewed", "Complete"];
   return (
-    <div className={`demo-window ${compact ? "compact" : ""}`}>
+    <div
+      className={`demo-window ${compact ? "compact" : ""}`}
+      data-card-surface={compact ? undefined : ""}
+    >
       <div className="demo-chrome">
         <span className="demo-dots">● ● ●</span>
         <span>OPERATIONS / WORKSPACE</span>

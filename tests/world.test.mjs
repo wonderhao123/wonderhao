@@ -66,12 +66,12 @@ test("streams descend and their tributaries join the main river",()=>{
  for(const s of streams.slice(1))assert.ok(streams[0].some(p=>JSON.stringify(p)===JSON.stringify(s.at(-1))));
 });
 test("the ring and runway have full flat foundations",()=>{
- for(let i=0;i<80;i++){const a=i/80*Math.PI*2;assert.ok(Math.abs(terrainHeight(sites.commons[0]+Math.cos(a)*48,sites.commons[2]+Math.sin(a)*48)-96)<.01)}
+ for(let i=0;i<80;i++){const a=i/80*Math.PI*2;assert.ok(Math.abs(terrainHeight(sites.commons[0]+Math.cos(a)*48,sites.commons[2]+Math.sin(a)*48)-sites.commons[1])<.01)}
  for(let z=-1200;z<=1200;z+=100)for(const x of [-22.5,0,22.5])assert.equal(terrainHeight(airport.runway.x+x,z),14);
  assert.equal(airport.runway.length,2400);assert.ok(harbours.cruise.length>=vesselSpecs[0].length);
 });
 test("water approaches and dive habitat are separate from airport and traffic",()=>{
- for(let i=0;i<vesselSpecs.length;i++)for(let t=0;t<360;t+=5){const {p}=vesselState(t,i);assert.ok(terrainHeight(p[0],p[2])<0,`${i} boat on land at ${p}`);assert.ok(Math.hypot(p[0]-1590,p[2]-1850)>250)}
+ for(let i=0;i<vesselSpecs.length;i++)for(let t=0;t<360;t+=5){const {p}=vesselState(t,i);assert.ok(terrainHeight(p[0],p[2])<0,`${i} boat on land at ${p}`);assert.ok(Math.hypot(p[0]-530,p[2]-470)>250)}
 });
 test("aircraft complete all phases without simultaneous runway occupancy",()=>{
  const phases=new Set();for(let t=0;t<960;t+=.5){const a=aircraftState(t,0),b=aircraftState(t,1);phases.add(a.phase);assert.ok(a.p.every(Number.isFinite)&&b.p.every(Number.isFinite),`invalid aircraft position at ${t}`);assert.ok(!a.resource||!b.resource||a.resource!==b.resource);}
@@ -91,4 +91,17 @@ test("bridge spans cover their channels with deck clearance",()=>{assert.ok(brid
 test("both bus lines stop and all service legs meet without teleporting",()=>{for(let i=0;i<2;i++){const routes=busRoutes[i];for(let j=0;j<routes.length;j++)assert.deepEqual(routes[j].at(-1),routes[(j+1)%routes.length][0]);const stops=new Set();for(let t=0;t<2400;t++){const s=busState(t,i);assert.ok(s.p.every(Number.isFinite));if(s.stopped)stops.add(s.stop);}assert.equal(stops.size,routes.length);}});
 test("moving ship hulls clear land, not only their centre points",()=>{
  for(let i=0;i<vesselSpecs.length;i++)for(let t=0;t<360;t+=2){const s=vesselSpecs[i],v=vesselState(t,i);for(const side of [-1,1])for(const end of [-1,1]){const x=v.p[0]+Math.cos(v.heading)*s.beam/2*side+Math.sin(v.heading)*s.length/2*end,z=v.p[2]-Math.sin(v.heading)*s.beam/2*side+Math.cos(v.heading)*s.length/2*end;assert.ok(terrainHeight(x,z)<.5,`${s.id} hull touches land at ${x},${z}`)}}
+});
+
+const {projectBuildings}=await import(url(compile('../lib/world/city-buildings.ts')));
+const registry=await import(content);
+test('each real project has exactly one semantic building and no scene invents a case',()=>{
+ const mapped=projectBuildings.flatMap(b=>b.projects);
+ assert.deepEqual([...mapped].sort(),registry.projects.map(p=>p.slug).sort());
+ for(const b of projectBuildings){assert.ok(b.projects.length>0);assert.ok(b.position.every(Number.isFinite));assert.ok(Math.hypot(b.position[0],b.position[2])<650)}
+ assert.ok(projectBuildings.find(b=>b.id==='campus').projects.includes('campus-systems'));
+});
+test('relocated historical place links still meet the same surveyed anchors',()=>{
+ for(const place of registry.places)assert.deepEqual(place.position,sites[place.id]);
+ for(const [x,z] of [[480,390],[515,390],[445,390]])assert.ok(terrainHeight(x,z)<-7,'circular facility needs submerged seabed support');
 });

@@ -20,7 +20,7 @@ export function SceneFinish({
   onMetrics?: (metrics: {fps:number;calls:number;triangles:number})=>void;
 }) {
   const { gl, scene, camera, size, invalidate } = useThree();
-  const sample = useRef({seconds:0,frames:0});
+  const sample = useRef({seconds:0,frames:0,times:[] as number[]});
   const pipeline = useRef<EffectComposer | null>(null);
   useEffect(() => {
     const target = new THREE.WebGLRenderTarget(1, 1, {
@@ -51,7 +51,8 @@ export function SceneFinish({
     gl.info.autoReset=false;gl.info.reset();
     if (pipeline.current) pipeline.current.render(dt);
     else gl.render(scene, camera);
-    if(!paused && dt<1){sample.current.seconds+=dt;sample.current.frames++;if(sample.current.seconds>=2){onMetrics?.({fps:Math.round(sample.current.frames/sample.current.seconds),calls:gl.info.render.calls,triangles:gl.info.render.triangles});sample.current={seconds:0,frames:0};}}else sample.current={seconds:0,frames:0};
+    if(gl.domElement.dataset.renderCalls!==String(gl.info.render.calls)||gl.domElement.dataset.renderTriangles!==String(gl.info.render.triangles))Object.assign(gl.domElement.dataset,{renderCalls:String(gl.info.render.calls),renderTriangles:String(gl.info.render.triangles)});
+    if(!paused && dt<1){sample.current.seconds+=dt;sample.current.frames++;sample.current.times.push(dt*1000);if(sample.current.seconds>=2){const times=sample.current.times.sort((a,b)=>a-b);Object.assign(gl.domElement.dataset,{renderCalls:String(gl.info.render.calls),renderTriangles:String(gl.info.render.triangles),frameP50:String(times[Math.floor(times.length*.5)]),frameP95:String(times[Math.floor(times.length*.95)]),frameP99:String(times[Math.floor(times.length*.99)]),frameSamples:String(times.length)});onMetrics?.({fps:Math.round(sample.current.frames/sample.current.seconds),calls:gl.info.render.calls,triangles:gl.info.render.triangles});sample.current={seconds:0,frames:0,times:[]};}}else sample.current={seconds:0,frames:0,times:[]};
   }, 1);
   return null;
 }

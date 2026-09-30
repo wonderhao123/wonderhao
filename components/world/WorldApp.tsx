@@ -56,6 +56,7 @@ import {
   type WorldPass as Pass,
   type WorldSettings,
 } from "@/lib/world/pass";
+import {projectBuildings} from "@/lib/world/city-buildings";
 import type { CameraAction, CameraSnapshot } from "./IslandScene";
 import { Dialog } from "./Dialog";
 import { WorldPass } from "./WorldPass";
@@ -79,7 +80,7 @@ class SceneBoundary extends Component<
   }
 }
 type Panel =
-  "projects" | "pass" | "about" | "contact" | "settings" | "places" | null;
+  "building" | "projects" | "pass" | "about" | "contact" | "settings" | "places" | null;
 export function WorldApp() {
   const [pass, setPass] = useState<Pass | null>(null);
   const passRef = useRef<Pass | null>(null);
@@ -96,6 +97,11 @@ export function WorldApp() {
   const [traffic,setTraffic]=useState("");
   const [pace,setPace]=useState(1);
   const [metrics,setMetrics]=useState<{fps:number;calls:number;triangles:number}|null>(null);
+  const [rotateMode,setRotateMode]=useState(false);
+  const [returnTarget,setReturnTarget]=useState<string>();
+  const [buildingId,setBuildingId]=useState<string>();
+  const [admitted,setAdmitted]=useState(false);
+  const activeBuilding=projectBuildings.find(b=>b.id===buildingId);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   const [hidden, setHidden] = useState(false);
@@ -105,7 +111,7 @@ export function WorldApp() {
   const [intro, setIntro] = useState(false);
   const [command, setCommand] = useState<CameraAction>({ id: 0, type: "home" });
   const reduced = systemReduced || settings.reducedMotion;
-  const first = !!pass && !pass.entered && !route.project;
+  const first = !!pass && !admitted && !route.project;
   const activePlace = placeById(route.place);
   const project = projectBySlug(route.project);
   const activeScene = sceneById(route.scene);
@@ -138,6 +144,7 @@ export function WorldApp() {
       setPass(p);
       setSettings(opts);
       setRoute(r);
+      if(r.project)setAdmitted(true);
       setDetailsOpen(true);
       if (r.place)
         setCommand((c) => ({
@@ -159,12 +166,13 @@ export function WorldApp() {
     const pop = () => {
       const r = resolveWorldRoute(window.location.search);
       setRoute(r);
+      if(r.project)setAdmitted(true);
       setDetailsOpen(true);
       setPanel(null);
       const s = window.history.state?.islandCamera as
         CameraSnapshot | undefined;
       if (
-        s && s.version === 2 &&
+        s && s.version === 3 &&
         Array.isArray(s.position) &&
         s.position.length === 3 &&
         Array.isArray(s.target) &&
@@ -199,6 +207,7 @@ export function WorldApp() {
       media.removeEventListener("change", motion);
     };
   }, []);
+  useEffect(()=>{const escape=(e:KeyboardEvent)=>{if(e.key==='Escape')setRotateMode(false)};window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape)},[]);
   const savePass = useCallback((update: (p: Pass) => Pass) => {
     const current = passRef.current;
     if (!current) return;
@@ -255,19 +264,12 @@ export function WorldApp() {
     [navigate, savePass, camera],
   );
   const openProject = (p: Project) => {
+    if(panel==="projects")setReturnTarget("directory");
     navigate({
       place: p.place,
       scene: sceneForProject(p.slug)?.id,
       project: p.slug,
     });
-    if (route.scene !== sceneForProject(p.slug)?.id)
-      setCommand((c) => ({
-        id: c.id + 1,
-        type: "focus",
-        place: p.place,
-        detail: true,
-        instant: true,
-      }));
     setPanel(null);
     savePass((v) => stampPass(v, p.place));
   };
@@ -297,6 +299,7 @@ export function WorldApp() {
     );
   }, []);
   const enter = () => {
+    setAdmitted(true);
     savePass((p) => stampPass({ ...p, entered: true }, "arrival"));
     setIntro(!reduced && !failed);
     setNotice(
@@ -339,6 +342,7 @@ export function WorldApp() {
     else navigate({ place: route.place, scene: route.scene }, true);
   };
   const onWorldKeys = (e: React.KeyboardEvent) => {
+    if(e.key === "Escape" && rotateMode){e.preventDefault();setRotateMode(false);return;}
     if (paused || e.target !== e.currentTarget) return;
     const keys: Record<string, CameraAction["type"]> = {
       ArrowLeft: "pan-left",
@@ -358,6 +362,7 @@ export function WorldApp() {
   };
   return (
     <main
+      data-reduced-motion={reduced}
       className={`world-app ${activeScene ? "in-content-scene" : ""} ${settings.dusk ? "is-dusk" : ""} ${first ? "at-border" : ""}`}
     >
       <a
@@ -375,7 +380,7 @@ export function WorldApp() {
         aria-label={
           failed
             ? "Illustrated island overview"
-            : "Island view. Drag to orbit, Shift-drag to pan, scroll to zoom. Arrow keys move the camera."
+            : "City map. Drag to move, scroll to zoom. Use Rotate view to orbit. Arrow keys move the camera."
         }
         onKeyDown={onWorldKeys}
         style={{
@@ -385,10 +390,12 @@ export function WorldApp() {
         {!failed && pass && (
           <SceneBoundary onFailure={onFailure}>
             <IslandScene
+              rotateMode={rotateMode}
+              onBuilding={id=>{setReturnTarget(id);const b=projectBuildings.find(v=>v.id===id);if(!b)return;if(b.projects.length===1){const project=projectBySlug(b.projects[0]);if(project)openProject(project)}else{setBuildingId(id);setPanel("building")}}}
               weather={settings.weather}
               level={route.level}
               underwater={route.view === "underwater" && !!pass?.diveKit}
-              onExplore={onExplore}
+              onExplore={()=>{setIntro(false);onExplore()}}
               onRegionStatus={onRegionStatus}
               dusk={settings.dusk}
               low={settings.quality === "low"}
@@ -430,6 +437,7 @@ export function WorldApp() {
         <nav
           id="world-navigation"
           className="spatial-breadcrumb"
+          data-card-surface=""
           aria-label="Spatial navigation"
         >
           <button
@@ -461,15 +469,17 @@ export function WorldApp() {
             </>
           )}
         </nav>
+        <div className="city-work-link"><button onClick={()=>setPanel("projects")}><BookOpen size={16}/> Browse projects</button><button onClick={()=>setPanel("contact")}>Contact ↗</button></div>
         <button className="city-directory" onClick={() => setPanel("places")} aria-label="Island directory"><Compass size={17}/> Explore island <ArrowUpRight size={14}/></button>
         {route.view === "underwater" && pass?.diveKit && <button className="city-return" onClick={() => navigate({place:"dive"})}>↑ Return to shore</button>}
-        {route.level && <div className="city-levels" aria-label="Citadel levels">{(["exterior","b1","b2"] as const).map(level => <button key={level} aria-pressed={level === route.level} onClick={() => {navigate({place:"commons", ...(level !== "exterior" ? {level} : {})});setDetailsOpen(false)}}>{level === "exterior" ? "Back outside" : level.toUpperCase()}</button>)}</div>}
-        {Object.values(regionStates).includes("error") && <div className="city-load" role="alert">A district could not load. <button onClick={() => window.dispatchEvent(new Event("world-retry-region"))}>Retry</button><button onClick={() => {navigate({});camera("home")}}>Return to town</button><Link href="/work">Browse projects</Link></div>}
-        {ready && Object.values(regionStates).includes("loading") && <div className="city-load" role="status">Preparing this district…</div>}
+        {route.level && <div className="city-levels" data-card-surface="" aria-label="Citadel levels">{(["exterior","b1","b2"] as const).map(level => <button key={level} aria-pressed={level === route.level} onClick={() => {navigate({place:"commons", ...(level !== "exterior" ? {level} : {})});setDetailsOpen(false)}}>{level === "exterior" ? "Back outside" : level.toUpperCase()}</button>)}</div>}
+        {Object.values(regionStates).includes("error") && <div className="city-load" data-card-surface="" role="alert">A district could not load. <button onClick={() => window.dispatchEvent(new Event("world-retry-region"))}>Retry</button><button onClick={() => {navigate({});camera("home")}}>Return to town</button><Link href="/work">Browse projects</Link></div>}
+        {ready && Object.values(regionStates).includes("loading") && <div className="city-load" data-card-surface="" role="status">Preparing this district…</div>}
         {activePlace && detailsOpen && (
           <section
             key={activeScene?.id || activePlace.id}
             className="place-panel"
+            data-card-surface=""
             aria-label={activePlace.name}
           >
             <div className="place-panel-heading">
@@ -637,7 +647,11 @@ export function WorldApp() {
               {settings.dusk ? "18:40 / BLUE HOUR" : "16:20 / LATE AFTERNOON"}
             </span>
           </div>
-          <div className="camera-controls" aria-label="Camera controls">
+          <div
+            className="camera-controls"
+            data-card-surface=""
+            aria-label="Camera controls"
+          >
             <button
               type="button"
               aria-label="Zoom out"
@@ -659,12 +673,13 @@ export function WorldApp() {
             <span className="control-divider" />
             <button
               type="button"
-              aria-label="Rotate island view"
+              aria-label={rotateMode?"Switch to pan mode":"Rotate view"}
+              aria-pressed={rotateMode}
               disabled={failed}
-              title="Rotate view 90 degrees"
-              onClick={() => camera("rotate")}
+              title={rotateMode?"Drag to rotate · Esc to pan":"Rotate view"}
+              onClick={() => setRotateMode(v=>!v)}
             >
-              <RotateCw size={16} />
+              <RotateCw size={16} /><span className="mode-label">{rotateMode?"Rotating":"Rotate"}</span>
             </button>
             <button
               type="button"
@@ -710,7 +725,7 @@ export function WorldApp() {
           <div className="navigation-hint">
             {failed
               ? "Choose a place from the directory."
-              : "Drag to orbit · Shift-drag to move · Scroll to explore"}
+              : rotateMode?"Drag to rotate · Esc to move":"Drag to move · Scroll to zoom"}
           </div>
         </div>
         {intro && (
@@ -726,7 +741,7 @@ export function WorldApp() {
           </button>
         )}
         {!ready && !failed && pass && (
-          <div className="loading-world" role="status">
+          <div className="loading-world" data-card-surface="" role="status">
             <span className="loading-dot" /> Preparing the island…{" "}
             <button type="button" onClick={() => setPanel("projects")}>
               Browse projects meanwhile
@@ -734,7 +749,7 @@ export function WorldApp() {
           </div>
         )}
         {failed && (
-          <div className="fallback-notice">
+          <div className="fallback-notice" data-card-surface="">
             <span>Postcard mode · All projects remain available.</span>
             <button
               type="button"
@@ -746,7 +761,7 @@ export function WorldApp() {
           </div>
         )}
         {route.unknown && (
-          <div className="route-notice" role="status">
+          <div className="route-notice" data-card-surface="" role="status">
             That destination isn’t on this island.{" "}
             <button type="button" onClick={() => navigate({})}>
               Return to the map
@@ -818,6 +833,7 @@ export function WorldApp() {
         <Dialog
           title={
             {
+              building: activeBuilding?.name??"Projects",
               projects: "Selected work",
               pass: "Your World Pass",
               about: "About the maker",
@@ -829,10 +845,11 @@ export function WorldApp() {
           onClose={() => setPanel(null)}
           wide={panel === "projects" || panel === "about"}
         >
+          {panel === "building" && activeBuilding && <div className="building-projects"><p>Projects in {activeBuilding.name}. Select a case to read.</p>{activeBuilding.projects.map(slug=>{const p=projectBySlug(slug);return p&&<button className="scene-entry" key={slug} onClick={()=>openProject(p)}><strong>{p.title}</strong><span>{p.summary}</span><ArrowUpRight size={18}/></button>})}</div>}
           {panel === "projects" && (
             <ProjectDirectory
               onProject={openProject}
-              onLocate={(p) => selectPlace(p.place)}
+              onLocate={p=>{const b=projectBuildings.find(v=>v.projects.includes(p.slug));if(b){navigate({});setPanel(null);setCommand(c=>({id:c.id+1,type:'building',building:b.id}))}}}
             />
           )}{" "}
           {panel === "pass" && pass && (
@@ -977,6 +994,7 @@ export function WorldApp() {
       {project && (
         <Dialog
           title={`${project.category} / Case study`}
+          restoreFocus={()=>returnTarget==='directory'?document.querySelector<HTMLButtonElement>('.city-work-link button'):document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${projectBuildings.find(b=>b.id===returnTarget)?.name}"]`)??document.querySelector<HTMLElement>('.world-viewport')}
           onClose={closeProject}
           wide
         >
@@ -999,7 +1017,12 @@ export function WorldApp() {
           <ProjectContent project={project} overlay />
         </Dialog>
       )}
-      <div className="world-toast" role="status" aria-live="polite">
+      <div
+        className="world-toast"
+        data-card-surface=""
+        role="status"
+        aria-live="polite"
+      >
         {notice && (
           <>
             <Check size={15} />

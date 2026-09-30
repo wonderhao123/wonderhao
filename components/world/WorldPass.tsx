@@ -94,7 +94,11 @@ export function WorldPass({
             ) > 8
           )
             pointer.current.moved = true;
-          if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+          if (
+            event.pointerType !== "mouse" ||
+            event.currentTarget.closest('[data-reduced-motion="true"]') ||
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+          )
             return;
           const rect = event.currentTarget.getBoundingClientRect();
           const x = (event.clientX - rect.left) / rect.width - 0.5;
@@ -130,7 +134,11 @@ export function WorldPass({
       >
         <div className="pass-tilt">
           <div className="pass-inner">
-            <div className="pass-face pass-front" aria-hidden={flipped}>
+            <div
+              className="pass-face pass-front"
+              data-card-surface="pass"
+              aria-hidden={flipped}
+            >
               <HoloFoil />
               <div className="pass-topline">
                 <span className="pass-status-dot" />
@@ -170,6 +178,7 @@ export function WorldPass({
             </div>
             <div
               className="pass-face pass-back"
+              data-card-surface="pass"
               aria-hidden={!flipped}
               inert={!flipped}
             >

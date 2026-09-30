@@ -1,39 +1,40 @@
 /** Authored city survey. One unit is one metre; north is negative Z. */
 export type V3 = [number, number, number];
 export type P2 = [number, number];
-export const CITY = { width: 7168, depth: 5120, tile: 256, sea: 0, version: 2 };
+export const CITY = { width: 7168, depth: 5120, tile: 256, sea: 0, version: 3 };
 export const sites = {
-  town: [0, 20, 0], commons: [80, 96, -680], archive: [-520, 24, -270],
-  station: [-240, 39, -610], atelier: [225, 20, 165], arrival: [100, 8, 1510],
-  works: [-1890, 9, 1330], dive: [1540, 7, 1650], airport: [2150, 14, -80],
+  town: [0, 20, 0], commons: [80, 76, -480], archive: [-220, 20, 65],
+  station: [-220, 20, -145], atelier: [145, 20, 150], arrival: [100, 8, 510],
+  works: [-640, 9, 230], dive: [480, 7, 270], airport: [2150, 14, -80],
 } satisfies Record<string, V3>;
+/** Original peripheral assets retain their real dimensions, translated onto the new coast. */
+export const relocation = {commons:[0,-20,200], arrival:[0,0,-1000], works:[1250,0,-1100], dive:[-1060,0,-1380]} satisfies Record<string,V3>;
 export type Road = { id: string; points: V3[]; width: number; mountain?: boolean; freight?: boolean };
 export const roadNodes = {
-  nw: [-360,20,-240], n: [0,20,-240], ne: [360,20,-240],
-  w: [-360,20,0], c: [0,20,0], e: [360,20,0],
-  sw: [-360,20,240], s: [0,20,240], se: [360,20,240],
-  archive: [-520,24,-270], station: [-240,39,-610],
-  port: [100,8,1460], dive: [1540,7,1590], works: [-1770,9,1300],
-  airport: [2020,14,-80], utilities: [-1260,20,420],
+  nw: [-340,20,-280], n: [0,20,-280], ne: [340,20,-280],
+  w: [-340,20,0], c: [0,20,0], e: [340,20,0],
+  sw: [-340,20,230], s: [0,20,230], se: [340,20,230],
+  archive: [-340,20,65], station: [-340,20,-145],
+  port: [100,8,460], dive: [480,7,210], works: [-520,9,200],
+  airport: [2020,14,-80], utilities: [-610,20,-120],
 } satisfies Record<string,V3>;
 const N = roadNodes;
 export const roadNetwork: Road[] = [
-  {id:'north-west',points:[N.nw,N.n],width:14},{id:'north-east',points:[N.n,N.ne],width:14},
-  {id:'west',points:[N.nw,N.w,N.sw],width:14},{id:'east',points:[N.ne,N.e,N.se],width:14},
-  {id:'south-west',points:[N.sw,N.s],width:14},{id:'south-east',points:[N.s,N.se],width:14},
-  {id:'town-west',points:[N.w,N.c],width:12},{id:'town-east',points:[N.c,N.e],width:12},
-  {id:'town-north',points:[N.n,N.c],width:12},{id:'town-south',points:[N.c,N.s],width:12},
-  {id:'archive-link',points:[N.nw,N.archive],width:10},
-  {id:'research-link',points:[N.archive,[-620,28,-400],[-430,34,-560],N.station],width:10},
-  {id:'citadel-ascent',points:[N.station,[-240,49,-850],[-80,60,-950],[160,72,-930],[300,84,-790],[210,96,-610],[80,96,-610]],width:10,mountain:true},
-  {id:'citadel-service',points:[N.station,[-50,48,-510],[240,66,-480],[260,78,-650],[145,84,-680]],width:8,mountain:true},
-  {id:'passenger-link',points:[N.s,[0,18,610],[100,12,1060],N.port],width:18},
-  {id:'airport-link',points:[N.e,[720,20,0],[1200,18,-80],N.airport],width:20},
-  {id:'reef-link',points:[N.se,[730,17,520],[1160,12,1110],N.dive],width:12},
-  {id:'western-link',points:[N.w,[-820,20,0],[-1260,20,100],N.utilities],width:18},
-  {id:'industrial-link',points:[N.utilities,[-1490,16,760],[-1660,9,1300],N.works,[-1920,9,1300]],width:20,freight:true},
-  {id:'freight-bypass',points:[N.works,[-1660,9,1300],[-1660,12,1120],[-2200,12,700],[-2050,19,-250],[-1400,28,-900],[-800,30,-1100],[350,28,-1250],[1200,18,-1050],[1840,14,-750],[2020,14,-750],N.airport],width:18,freight:true},
-  {id:'bus-west',points:[N.archive,[-780,23,-270],[-1050,20,100],N.utilities],width:12},
+  {id:'north-west',points:[N.nw,N.n],width:15},{id:'north-east',points:[N.n,N.ne],width:15},
+  {id:'west',points:[N.nw,N.station,N.w,N.archive,N.sw],width:11},{id:'east',points:[N.ne,N.e,N.se],width:14},
+  {id:'south-west',points:[N.sw,[-210,20,240],N.s],width:10},{id:'south-east',points:[N.s,[180,20,235],N.se],width:10},
+  {id:'town-west',points:[N.w,N.c],width:12},{id:'town-east',points:[N.c,N.e],width:16},
+  {id:'town-north',points:[N.n,N.c],width:14},{id:'town-south',points:[N.c,N.s],width:10},
+  {id:'archive-link',points:[N.nw,N.station,N.w,N.archive],width:11},
+  {id:'research-link',points:[N.archive,N.w,N.station],width:11},
+  {id:'citadel-ascent',points:[N.station,[-410,23,-250],[-435,34,-390],[-380,44,-520],[-230,58,-600],[-60,72,-570],[80,76,-410]],width:8,mountain:true},
+  {id:'citadel-service',points:[N.station,[-340,23,-225],[-250,31,-340],[-100,44,-375],[70,57,-355],[145,64,-480]],width:7,mountain:true},
+  {id:'passenger-link',points:[N.s,[0,16,310],[100,8,460]],width:14},
+  {id:'airport-link',points:[N.e,[720,20,0],[1200,18,-80],N.airport],width:16},
+  {id:'reef-link',points:[N.e,[470,13,110],N.dive],width:10},
+  {id:'western-link',points:[N.w,[-470,20,0],N.utilities],width:12},
+  {id:'industrial-link',points:[N.utilities,[-565,16,40],[-410,9,200],N.works,[-670,9,200]],width:16,freight:true},
+  {id:'bus-west',points:[N.archive,[-470,20,65],N.utilities],width:10},
 ];
 export function smooth(t:number){return t*t*(3-2*t)}
 export function clamp(v:number,a=0,b=1){return Math.max(a,Math.min(b,v))}
@@ -56,9 +57,8 @@ export function sampleRoad(r:Road):V3[]{
 export const sampledRoads=roadNetwork.map(r=>({...r,points:sampleRoad(r)}));
 const roadBounds=sampledRoads.map(r=>({r,minX:Math.min(...r.points.map(p=>p[0]))-110,maxX:Math.max(...r.points.map(p=>p[0]))+110,minZ:Math.min(...r.points.map(p=>p[2]))-110,maxZ:Math.max(...r.points.map(p=>p[2]))+110}));
 export const streams:V3[][]=[
- [[-750,67,-1750],[-680,43,-1200],[-710,30,-750],[-720,13,-270],[-650,11,150],[-580,7,700],[-420,2,1250],[-340,-1,1700]],
- [[-1350,82,-1600],[-1100,47,-1200],[-710,30,-750]],
- [[520,78,-1650],[350,54,-1350],[-110,39,-1120],[-710,30,-750]],
+ [[-450,28,-860],[-550,22,-600],[-590,16,-320],[-555,5,-100],[-460,-1,370]],
+ [[-680,24,-520],[-640,21,-440],[-590,16,-320]],
 ];
 export function channel(x:number,z:number){let d=Infinity,y=0,width=24;streams.forEach((s,j)=>{for(let i=1;i<s.length;i++){const q=segment(x,z,s[i-1],s[i]);if(q.d<d){d=q.d;y=q.y;width=j?14:24+i*2}}});return {d,y,width}}
 /** Complete skew bridge spans, derived from the same road and river centrelines. */
@@ -76,26 +76,27 @@ export const bridges=sampledRoads.flatMap(road=>{
  return result;
 });
 export const airport={runway:{x:2460,z:0,length:2400,width:45,y:14},taxiX:2350,terminal:[2150,14,-80] as V3};
-export const harbours={cruise:{x:100,z:1730,length:220,beam:32},ferry:[[-85,1720],[10,1720]] as P2[],supply:[[-2030,1540],[-1840,1540]] as P2[],drydock:{x:-2190,z:1365,length:100,width:28}};
+export const harbours={cruise:{x:100,z:730,length:220,beam:32},ferry:[[-85,720],[10,720]] as P2[],supply:[[-780,440],[-590,440]] as P2[],drydock:{x:-940,z:265,length:100,width:28}};
 export function baseHeight(x:number,z:number){
- const edge=1-Math.hypot(x/3460,z/2410)+.027*Math.sin(x*.0014+z*.001)+.019*Math.sin(z*.0028);
- let h=Math.min(20,edge*280);
- const g=(cx:number,cz:number,sx:number,sz:number,k:number)=>k*Math.exp(-((x-cx)**2/sx**2+(z-cz)**2/sz**2));
- h+=clamp(edge*12)*(g(-1250,-1200,650,700,110)+g(250,-1500,800,450,110)+g(1050,-900,450,500,52));
- // Working and passenger shorelines are authored bays, not docks placed over dry land.
- const bay=(cx:number,start:number,span:number)=>Math.exp(-(((x-cx)/span)**4))*smooth(clamp((z-start)/160));
- h=h*(1-bay(60,1510,560))+(-12-(z-1670)*.03)*bay(60,1510,560);
- h=h*(1-bay(-1950,1320,490))+(-15-(z-1480)*.03)*bay(-1950,1320,490);
- const reef=bay(1590,1670,430);h=h*(1-reef)+(-3-clamp((z-1780)/400)*18)*reef;
- // Broad foothills supporting a deliberately terraced summit.
- h+=76*Math.exp(-(((x-80)/175)**2+((z+680)/180)**2));
- const summit=Math.hypot(x-80,z+680);if(summit<88)h=h*(smooth(clamp((summit-61)/27)))+96*(1-smooth(clamp((summit-61)/27)));
- // Town, airport and service compounds have complete ground planes.
+ // A compact peninsula, an outer airfield and water between; never a uniformly scaled island.
+ const main=1-Math.hypot(x/790,(z+400)/920);
+ const air=1-Math.hypot((x-2380)/310,z/1510);
+ let h=Math.min(20,Math.max(main*220,air*150));
  const rect=(cx:number,cz:number,w:number,d:number,y:number,blend:number)=>{const dist=Math.max(Math.abs(x-cx)-w/2,Math.abs(z-cz)-d/2);const t=smooth(clamp(dist/blend));h=y*(1-t)+h*t};
- rect(0,0,810,560,20,80);rect(2380,0,420,2620,14,110);rect(2070,-80,260,470,14,70);
- rect(-520,-270,145,135,24,55);rect(-240,-610,90,90,39,40);
- rect(100,1490,300,140,8,40);rect(-1980,1260,520,180,9,80);rect(1540,1650,140,85,7,25);rect(-1260,420,180,180,20,45);
- const w=channel(x,z);if(w.d<w.width/2+130){const t=smooth(clamp((w.d-w.width/2)/130));h=(w.y-2)*(1-t)+h*t}
+ // Sheltered urban bay; continuous quays follow this edge.
+ const coast=290+25*Math.cos(x*.009);
+ if(x>-390&&x<410)h=Math.min(h,20-(z-coast)*.65);
+ if(x>400&&x<700)h=Math.min(h,12-(z-285)*.22);
+ h+=60*Math.exp(-(((x-80)/210)**2+((z+480)/180)**2));
+ rect(0,-35,735,525,20,25);
+ rect(80,-480,112,112,76,34);
+ rect(2380,0,420,2620,14,65);rect(2070,-80,260,470,14,45);
+ rect(100,490,290,115,8,20);rect(-730,140,520,180,9,35);rect(480,270,140,85,7,18);
+ // Ship approaches and habitat must stay below sea level, including their hull footprints.
+ if(z>545&&x>-180&&x<280)h=Math.min(h,-14-(z-545)*.025);
+ if(z>230&&x>-1040&&x< -470)h=Math.min(h,-12-(z-230)*.035);
+ if(z>320&&x>365&&x<700)h=Math.min(h,-5-(z-320)*.055);
+ const w=channel(x,z);if(w.d<w.width/2+30){const t=smooth(clamp((w.d-w.width/2)/30));h=(w.y-2)*(1-t)+h*t}
  return h;
 }
 export function terrainHeight(x:number,z:number){
@@ -104,14 +105,14 @@ export function terrainHeight(x:number,z:number){
  for(const b of roadBounds){if(x<b.minX||x>b.maxX||z<b.minZ||z>b.maxZ)continue;
   for(let i=1;i<b.r.points.length;i++){
    const q=segment(x,z,b.r.points[i-1],b.r.points[i]);
-   if(!nearest||q.d<nearest.d)nearest={...q,width:b.r.width,blend:b.r.mountain?100:30};
+   if(!nearest||q.d<nearest.d)nearest={...q,width:b.r.width,blend:b.r.mountain?32:12};
   }
  }
  if(nearest&&nearest.d<nearest.width/2+nearest.blend&&!(w.d<w.width/2+6&&nearest.y>w.y+3)){
-  const t=smooth(clamp((nearest.d-nearest.width/2-4)/nearest.blend));h=(nearest.y-.18)*(1-t)+h*t;
+  const t=smooth(clamp((nearest.d-nearest.width/2-3)/nearest.blend));h=(nearest.y-.18)*(1-t)+h*t;
  }
- if(Math.hypot(x-80,z+680)<54)h=96;
- if(Math.abs(x+2190)<14&&Math.abs(z-1365)<50)h=-2;
+ if(Math.hypot(x-80,z+480)<55)h=76;
+ if(Math.abs(x+940)<14&&Math.abs(z-265)<50)h=-2;
  return h;
 }
 export function hash(n:number){const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}

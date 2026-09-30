@@ -48,6 +48,7 @@ export function ProjectDirectory({
         {list.map((p) => (
           <article
             className="project-tile"
+            data-card-surface=""
             key={p.slug}
             style={{ "--project-color": p.color } as React.CSSProperties}
           >

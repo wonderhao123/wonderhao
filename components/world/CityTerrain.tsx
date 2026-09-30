@@ -3,7 +3,7 @@ import {useCallback,useEffect,useMemo,useRef,useState,type MutableRefObject} fro
 import {useFrame,useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import {cityAsset} from '@/lib/world/assets';
-import {CITY,bridges,channel,sites,sampledRoads,streams,type V3} from '@/lib/world/city-plan';
+import {CITY,bridges,channel,sites,sampledRoads,streams,weatherAt,type Weather,type V3} from '@/lib/world/city-plan';
 import type {Part,Region} from '@/lib/world/city-assets';
 const regionCache=new Map<string,Promise<Part[]>>();
 const heightCache=new Map<string,Promise<Float32Array>>();
@@ -11,12 +11,12 @@ function heights(file:string){let p=heightCache.get(file);if(!p){p=fetch(cityAss
 function regionData(id:string){let p=regionCache.get(id);if(!p){p=fetch(cityAsset(id+'.json')).then(r=>{if(!r.ok)throw Error('Region unavailable');return r.json()});regionCache.set(id,p!);p!.catch(()=>regionCache.delete(id));}return p!}
 function TerrainMesh({data,nx,nz,x,z,w,d,level,coverage}:{data:Float32Array;nx:number;nz:number;x:number;z:number;w:number;d:number;level:string;coverage?:THREE.DataTexture}){
  const cut=useRef({value:0});
- useFrame(()=>{cut.current.value=level==='b1'?90:level==='b2'?84:0});
+ useFrame(()=>{cut.current.value=level==='b1'?70:level==='b2'?64:0});
  const geo=useMemo(()=>{
   const g=new THREE.PlaneGeometry(w,d,nx,nz);g.rotateX(-Math.PI/2);g.translate(x+w/2,0,z+d/2);
   const p=g.attributes.position,c=[];for(let i=0;i<p.count;i++){
    const y=data[i];p.setY(i,y);const px=p.getX(i),pz=p.getZ(i),water=channel(px,pz);
-   const hue=y<1?'#d5d0ac':water.d<water.width/2+7?'#a4b99a':y>105?'#9aa58d':y>50?'#92b077':'#a6c789';
+   const hue=y<1?'#c7bea1':water.d<water.width/2+7?'#899c83':y>105?'#839084':y>50?'#788e6e':'#8ba17b';
    const color=new THREE.Color(hue);color.multiplyScalar(.97+.025*Math.sin(px*.017)*Math.cos(pz*.019));c.push(color.r,color.g,color.b);
   }
   g.setAttribute('color',new THREE.Float32BufferAttribute(c,3));g.computeVertexNormals();return g;
@@ -24,7 +24,7 @@ function TerrainMesh({data,nx,nz,x,z,w,d,level,coverage}:{data:Float32Array;nx:n
  useEffect(()=>()=>geo.dispose(),[geo]);
  return <mesh geometry={geo} receiveShadow><meshStandardMaterial customProgramCacheKey={()=>coverage?"city-far-coverage":"city-near"} vertexColors roughness={.95} onBeforeCompile={shader=>{
   shader.uniforms.cutLevel=cut.current; if(coverage)shader.uniforms.coverage={value:coverage};shader.vertexShader='varying vec3 surveyPosition;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nsurveyPosition=position;');
-  shader.fragmentShader=(coverage?'uniform sampler2D coverage;\n':'')+'uniform float cutLevel; varying vec3 surveyPosition;\n'+shader.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(cutLevel>0. && distance(surveyPosition.xz,vec2(80.,-680.))<68. && surveyPosition.y>cutLevel-.4) discard;'+(coverage?'\nif(texture2D(coverage,(surveyPosition.xz+vec2(3584.,2560.))/vec2(7168.,5120.)).r>.5) discard;':''));
+  shader.fragmentShader=(coverage?'uniform sampler2D coverage;\n':'')+'uniform float cutLevel; varying vec3 surveyPosition;\n'+shader.fragmentShader.replace('#include <clipping_planes_fragment>','#include <clipping_planes_fragment>\nif(cutLevel>0. && distance(surveyPosition.xz,vec2(80.,-480.))<68. && surveyPosition.y>cutLevel-.4) discard;'+(coverage?'\nif(texture2D(coverage,(surveyPosition.xz+vec2(3584.,2560.))/vec2(7168.,5120.)).r>.5) discard;':''));
  }}/></mesh>
 }
 function Tile({x,z,n,level,onCoverage}:{x:number;z:number;n:number;level:string;onCoverage:(x:number,z:number,add:number)=>void}){
@@ -53,26 +53,26 @@ export function CityTerrain({level,low,onFailure}:{level:string;low:boolean;onFa
  });
  return <>{far&&<TerrainMesh data={far} nx={112} nz={80} x={-3584} z={-2560} w={CITY.width} d={CITY.depth} level={level} coverage={coverage.texture}/>} {tiles.map(t=><Tile key={`${t.x}:${t.z}:${t.n}`} {...t} level={level} onCoverage={onCoverage}/>)}</>;
 }
-function Instances({parts,shape,color,dusk,clock}:{parts:Part[];shape:number;color:string;dusk:boolean;clock?:MutableRefObject<number>}){
- const wind=useRef({value:0});useFrame(()=>{wind.current.value=clock?.current??0});
+function Instances({parts,shape,color,dusk,clock,weather}:{parts:Part[];shape:number;color:string;dusk:boolean;clock?:MutableRefObject<number>;weather?:Weather}){
+ const material=useRef<THREE.MeshStandardMaterial>(null);const wind=useRef({value:0});useFrame(()=>{wind.current.value=clock?.current??0;if(material.current){const base=["#386574","#36515e","#496574"].includes(color)?.27:.76;material.current.roughness=base*(1-weatherAt(clock?.current??0,weather??"sunny")*.45)}});
  const ref=useRef<THREE.InstancedMesh>(null);const matrix=useMemo(()=>new THREE.Object3D(),[]);
- useEffect(()=>{if(!ref.current)return;parts.forEach((p,i)=>{matrix.position.set(p[2],p[3],p[4]);matrix.scale.set(p[5],p[6],p[7]);matrix.rotation.set(0,p[8],0);matrix.updateMatrix();ref.current!.setMatrixAt(i,matrix.matrix)});ref.current.instanceMatrix.needsUpdate=true;ref.current.computeBoundingSphere()},[parts,matrix]);
- const glow=color==='#A66BFF',glass=['#36515e','#496574','#638c94','#70979a','#3f6b76'].includes(color);
+ useEffect(()=>{if(!ref.current)return;parts.forEach((p,i)=>{matrix.position.set(p[2],p[3],p[4]);matrix.scale.set(p[5],p[6],p[7]);matrix.rotation.set(0,p[8],0);matrix.updateMatrix();ref.current!.setMatrixAt(i,matrix.matrix)});ref.current.geometry.computeVertexNormals();ref.current.instanceMatrix.needsUpdate=true;ref.current.computeBoundingSphere()},[parts,matrix]);
+ const glow=color==='#A66BFF',glass=['#36515e','#496574','#638c94','#70979a','#3f6b76','#386574','#71989d'].includes(color);
  return <instancedMesh ref={ref} args={[undefined,undefined,parts.length]} castShadow receiveShadow>
- {shape===0?<boxGeometry/>:shape===1?<cylinderGeometry args={[1,1,1,10]}/>:shape===2?<icosahedronGeometry args={[1,1]}/>:<coneGeometry args={[1,2,7]}/>}
- <meshStandardMaterial customProgramCacheKey={()=>clock&&shape>=2&&["#8fa65f","#678b59","#aec57d","#75995e"].includes(color)?"city-wind":"city-static"} onBeforeCompile={shader=>{if(!clock||shape<2||!['#8fa65f','#678b59','#aec57d','#75995e'].includes(color))return;shader.uniforms.windTime=wind.current;shader.vertexShader='uniform float windTime;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.x += sin(windTime*.8+instanceMatrix[3].x*.017+instanceMatrix[3].z*.01)*.07*(position.y+1.);');}} color={color} roughness={glass?.24:.8} metalness={glass?.3:.03} emissive={glow?'#A66BFF':glass&&dusk?'#dabd87':'#000000'} emissiveIntensity={glow?2.8:dusk?.4:0}/>
+ {shape===4?<bufferGeometry><bufferAttribute attach="attributes-position" args={[new Float32Array([-.5,0,-.5,.5,0,-.5,0,1,-.5,-.5,0,.5,0,1,.5,.5,0,.5,-.5,0,-.5,0,1,-.5,0,1,.5,-.5,0,-.5,0,1,.5,-.5,0,.5,.5,0,-.5,.5,0,.5,0,1,.5,.5,0,-.5,0,1,.5,0,1,-.5]),3]}/></bufferGeometry>:shape===0?<boxGeometry/>:shape===1?<cylinderGeometry args={[1,1,1,10]}/>:shape===2?<icosahedronGeometry args={[1,2]}/>:<coneGeometry args={[1,2,7]}/>}
+ <meshStandardMaterial ref={material} side={shape===4?THREE.DoubleSide:THREE.FrontSide} customProgramCacheKey={()=>clock&&shape>=2&&["#8fa65f","#678b59","#aec57d","#75995e"].includes(color)?"city-wind":"city-static"} onBeforeCompile={shader=>{if(!clock||shape<2||!['#8fa65f','#678b59','#aec57d','#75995e'].includes(color))return;shader.uniforms.windTime=wind.current;shader.vertexShader='uniform float windTime;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.x += sin(windTime*.8+instanceMatrix[3].x*.017+instanceMatrix[3].z*.01)*.07*(position.y+1.);');}} color={color} roughness={glass?.27:.76} metalness={glass?.42:.04} emissive={glow?'#A66BFF':glass&&dusk?'#dabd87':'#000000'} emissiveIntensity={glow?2.8:dusk?.4:0}/>
  </instancedMesh>;
 }
-export function Parts({parts,dusk,clock}:{parts:Part[];dusk:boolean;clock?:MutableRefObject<number>}){
+export function Parts({parts,dusk,clock,weather}:{parts:Part[];dusk:boolean;clock?:MutableRefObject<number>;weather?:Weather}){
  const batches=useMemo(()=>{const m=new Map<string,Part[]>();parts.forEach(p=>{const k=p[0]+p[1];if(!m.has(k))m.set(k,[]);m.get(k)!.push(p)});return [...m.values()]},[parts]);
- return <>{batches.map((p,i)=><Instances key={i} parts={p} shape={p[0][0]} color={p[0][1]} dusk={dusk} clock={clock}/>)}</>;
+ return <>{batches.map((p,i)=><Instances key={i} parts={p} shape={p[0][0]} color={p[0][1]} dusk={dusk} clock={clock} weather={weather}/>)}</>;
 }
-export function CityRegion({id,dusk,onStatus,clock,detail=true}:{id:Region;dusk:boolean;detail?:boolean;clock?:MutableRefObject<number>;onStatus:(id:string,state:string)=>void}){
+export function CityRegion({id,dusk,onStatus,clock,weather,detail=true}:{id:Region;dusk:boolean;detail?:boolean;clock?:MutableRefObject<number>;onStatus:(id:string,state:string)=>void;weather?:Weather}){
  const [parts,setParts]=useState<Part[]>(),[attempt,setAttempt]=useState(0),[error,setError]=useState(false);const {invalidate}=useThree();
  useEffect(()=>{let alive=true;onStatus(id,'loading');regionData(id+(detail?'':'-far')).then(p=>{if(alive){setParts(p);setError(false);onStatus(id,'ready');invalidate()}}).catch(()=>{if(alive){setError(true);onStatus(id,'error')}});return()=>{alive=false;onStatus(id,'idle')}},[id,detail,attempt,onStatus,invalidate]);
  // Retry is also exposed through the enclosing scene's HTML status control.
  useEffect(()=>{const retry=()=>setAttempt(v=>v+1);window.addEventListener('world-retry-region',retry);return()=>window.removeEventListener('world-retry-region',retry)},[]);
- return parts&&!error?<Parts parts={parts} dusk={dusk} clock={clock}/>:null;
+ return parts&&!error?<Parts parts={parts} dusk={dusk} clock={clock} weather={weather}/>:null;
 }
 export function ribbon(points:V3[],width:number){
  const g=new THREE.BufferGeometry(),v:number[]=[],idx:number[]=[];

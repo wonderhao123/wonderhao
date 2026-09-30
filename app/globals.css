@@ -14,6 +14,12 @@
   --muted: #95a7b8;
   --line: #a3d3e522;
   --shadow: 0 18px 70px #00000055;
+  --card-floor: #0d0f12;
+  --card-raised: #181a1e;
+  --card-edge: #ffffff22;
+  --card-glow-rgb: 210 212 218;
+  --card-radius-default: 16px;
+  --card-light-duration: 220ms;
 }
 * {
   box-sizing: border-box;
@@ -3277,3 +3283,164 @@ html {
 .dive-kit button svg {width:16px;height:16px;flex-shrink:0;}
 .city-return,.city-levels {top:160px;}
 @media(max-width:700px){.city-return,.city-levels{top:130px;}}
+
+/* Shared graphite card material. Coordinates are supplied by CardLighting. */
+@property --card-light {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+:root [data-card-surface] {
+  --card-light: 0;
+  --card-radius: var(--card-radius-default);
+  --card-x: 32%;
+  --card-y: 0%;
+  --card-material: linear-gradient(145deg, var(--card-raised), var(--card-floor) 75%);
+  border: 1px solid transparent;
+  border-radius: var(--card-radius);
+  background:
+    radial-gradient(
+      ellipse 340px 240px at var(--card-x) var(--card-y),
+      rgb(var(--card-glow-rgb) / calc(0.1 * var(--card-light))),
+      transparent 75%
+    ) padding-box,
+    radial-gradient(ellipse at 25% 0%, #ffffff06, transparent 65%) padding-box,
+    var(--card-material) padding-box,
+    radial-gradient(
+      180px circle at var(--card-x) var(--card-y),
+      rgb(var(--card-glow-rgb) / calc(0.75 * var(--card-light))),
+      transparent 80%
+    ) border-box,
+    linear-gradient(var(--card-edge), #ffffff10) border-box;
+  box-shadow: 0 12px 40px #00000030;
+  transition: --card-light var(--card-light-duration) ease-out;
+}
+
+:root [data-card-surface][data-card-lit="true"] {
+  --card-light: 1;
+}
+
+:root [data-card-surface]:has(:focus-visible),
+:root [data-card-surface]:focus-visible {
+  --card-light: 0.7;
+}
+
+:root [data-card-surface]:has(:focus-visible):not([data-card-lit]),
+:root [data-card-surface]:focus-visible:not([data-card-lit]) {
+  --card-x: 50% !important;
+  --card-y: 0% !important;
+}
+
+:root [data-card-surface]:has(button:active:not(:disabled), a:active) {
+  --card-light: 0.5;
+}
+
+:root .project-tile[data-card-surface] {
+  padding: 16px 16px 0;
+}
+.project-tile .tile-copy {
+  padding-inline: 4px;
+}
+.project-tile .tile-preview,
+.project-tile:hover .tile-preview {
+  background-color: var(--card-floor);
+  border-color: var(--card-edge);
+  border-radius: 10px;
+}
+
+:root .world-dialog[data-card-surface] {
+  --card-radius: 20px;
+}
+.world-dialog .dialog-heading {
+  background: #ffffff03;
+  border-color: var(--card-edge);
+}
+:root .camera-controls[data-card-surface],
+:root .city-levels[data-card-surface] {
+  --card-radius: 12px;
+}
+:root :is(.spatial-breadcrumb, .city-load, .loading-world, .fallback-notice, .route-notice, .world-toast)[data-card-surface] {
+  --card-radius: 10px;
+}
+:root [data-card-surface="pass"] {
+  --card-material: linear-gradient(#000c, #000c);
+  --card-radius: 16px;
+  box-shadow: 0 25px 50px -12px #00000080;
+}
+:root [data-card-surface="image"] {
+  --card-material: var(--card-image);
+  background-size: auto, auto, cover, auto, auto;
+  background-position: center;
+}
+.pass-card:hover .pass-face {
+  border-color: transparent;
+}
+.demo-window.compact,
+.gallery-study.compact {
+  background: var(--card-floor);
+}
+.demo-window .demo-chrome,
+.notes-demo .notes-layout > aside {
+  background: #ffffff03;
+  border-color: var(--card-edge);
+}
+
+@media (hover: none) {
+  :root [data-card-surface]:not([data-card-surface="pass"], [data-card-surface="image"]) {
+    --card-material: linear-gradient(145deg, #1b1d21, var(--card-floor) 80%);
+  }
+}
+@media (max-width: 700px) {
+  :root .world-dialog[data-card-surface] {
+    --card-radius: 0px;
+    border: 0;
+  }
+  :root .project-tile[data-card-surface] {
+    padding: 12px 12px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root [data-card-surface] {
+    transition: none;
+  }
+  :root [data-card-surface][data-card-lit] {
+    --card-light: 0;
+  }
+}
+:root [data-reduced-motion="true"] [data-card-surface] {
+  transition: none;
+}
+:root [data-reduced-motion="true"] [data-card-surface][data-card-lit] {
+  --card-light: 0;
+}
+:root [data-reduced-motion="true"] .pass-tilt {
+  transform: none;
+}
+@media (forced-colors: active) {
+  :root [data-card-surface] {
+    background: Canvas;
+    border: 1px solid CanvasText;
+    box-shadow: none;
+  }
+}
+
+/* World-as-UI: quiet building labels, with direct DOM access to the same cases. */
+.world-toast:not(:empty) { color:#f0f4ed; }
+.building-marker { display:flex;align-items:center;gap:8px;white-space:nowrap;background:#142d35ed;color:#f0f4ed;border:1px solid #bad9cd50;border-radius:4px;padding:8px 11px;font-size:11px;box-shadow:0 3px 12px #142d3526;cursor:pointer; }
+.building-marker:hover,.building-marker:focus-visible { background:#1c454c;border-color:var(--accent); }
+.building-dot {width:5px;height:5px;background:var(--accent);border-radius:50%;}
+.building-projects { display:grid;gap:14px; }.building-projects>p {color:var(--muted);}
+.building-projects .scene-entry {display:grid;text-align:left;gap:8px;padding:20px;}
+.building-projects .scene-entry span {color:var(--muted);line-height:1.6;}
+.city-work-link { position:absolute;left:28px;bottom:148px;display:flex;gap:8px;pointer-events:auto;z-index:24; }
+.city-work-link button {display:flex;align-items:center;gap:8px;background:#142d35ed;color:#f0f4ed;border:1px solid #bad9cd50;border-radius:5px;padding:11px 14px;font-size:12px;}
+.camera-controls button[aria-pressed="true"] {background:#31515b;color:#bff5fa;}
+.camera-controls button:has(.mode-label) {width:auto;padding-inline:12px;gap:7px;}
+.mode-label {font-size:11px;}
+.world-viewport canvas {touch-action:none;}
+@media(max-width:700px){.city-work-link{left:12px;bottom:135px}.city-work-link button{min-height:44px;padding:10px}.building-marker{font-size:10px;min-height:44px;padding:6px;gap:5px}.mode-label{display:none}}
+
+.building-marker.is-compact { padding:7px;min-width:24px;min-height:24px;justify-content:center; }
+.building-marker.is-compact:not(:hover):not(:focus-visible) .building-marker-name,.building-marker.is-compact:not(:hover):not(:focus-visible) .building-marker-arrow{display:none;}
+@media(max-width:700px){.building-marker.is-compact{min-width:44px;min-height:44px}.building-marker-name{max-width:100px;overflow:hidden;text-overflow:ellipsis;}}

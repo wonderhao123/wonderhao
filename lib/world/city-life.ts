@@ -1,4 +1,4 @@
-import {type V3,clamp,sampledRoads,roadNodes} from './city-plan';
+import {type V3,clamp,sampledRoads,roadNodes,relocation} from './city-plan';
 export type PathPoint={p:V3; heading:number};
 export function along(points:V3[],progress:number):PathPoint{
  const lengths=points.slice(1).map((p,i)=>Math.hypot(...p.map((v,k)=>v-points[i][k]))),total=lengths.reduce((a,b)=>a+b,0);let d=clamp(progress)*total;
@@ -36,7 +36,7 @@ export function vesselState(time:number,index:number){
  else if(t<230)phase='Alongside';
  else if(t<270){phase='Leaving berth';path=[s.berth,p1,p0];u=(t-230)/40*.2}
  else {phase='Outbound';path=[s.berth,p1,p0];u=.2+(t-270)/90*.8}
- const result=along(path,u);if((phase==='Leaving berth'||phase==='Outbound')&&result.p[2]<s.berth[2]+245)result.heading=Math.PI;return {...result,phase,resource:phase==='Alongside'?`berth:${s.id}`:`channel:${s.id}`,speed:phase==='Alongside'?0:phase==='Approach'||phase==='Outbound'?1:.3};
+ const result=along(path,u);if((phase==='Leaving berth'||phase==='Outbound')&&result.p[2]<s.berth[2]+245)result.heading=Math.PI;const offset=index<3?relocation.arrival:relocation.works;result.p=result.p.map((v,k)=>v+offset[k]) as V3;return {...result,phase,resource:phase==='Alongside'?`berth:${s.id}`:`channel:${s.id}`,speed:phase==='Alongside'?0:phase==='Approach'||phase==='Outbound'?1:.3};
 }
 
 const roadPath=(id:string,reverse=false)=>{const p=sampledRoads.find(r=>r.id===id)!.points;return reverse?[...p].reverse():p};

@@ -13,6 +13,10 @@ colors:
   accent: "#67e8f9"
   pass-background: "#0a0a0a"
   pass-text: "#ffffff"
+  card-floor: "#0d0f12"
+  card-raised: "#181a1e"
+  card-edge: "#ffffff22"
+  card-glow: "#d2d4da"
 typography:
   sans:
     fontFamily: "Geist, Arial, sans-serif"
@@ -24,6 +28,7 @@ rounded:
   control: "5px"
   surface: "8px"
   pass: "16px"
+  card: "16px"
 spacing:
   desktop-inset: "36px"
   mobile-inset: "18px"
@@ -69,23 +74,25 @@ Desktop: no header; only a floating World Pass button in the upper-right, small 
 
 ## World composition
 
-The survey is 7,168 × 5,120 metres. The opening view frames the 800 × 600 metre central town and its northern summit, not the whole island. Singapore informs separation of residential, civic, airport, passenger, industrial, utility and conservation uses. It is an invented island, not a copy of Singapore.
+The inhabited portfolio city occupies roughly 760 × 680 metres. The wider survey retains the existing airfield and shipping approaches, but the land is a compact peninsula, not a full rectangular island. A continuous curved quay ties a waterfront arcade to a shophouse street, a library court, a campus, a hospital and a clustered business skyline. Upper floors step above occupied podiums, while low foreground buildings preserve sight lines. The Ring sits on a terraced foundation at 76 metres with an engineered access road; the vertical coastal observatory is a fixed caisson with seabed supports, layered edges, observation ribbons and a lateral landing.
 
-Town blocks contain 4–8 storey residences, shaded courts, shopfronts, a hawker pavilion, school/sport, clinic, fire station and bus shelters. Northern woodland transitions to a 96 metre diameter white ring lab, 76 metres above the town, with two exterior storeys and B1/B2 at 90/84 metres elevation. The east airport has a 2,400 × 45 metre runway and 37 metre aircraft. Passenger and industrial quays use separate bays. The dive habitat occupies the southeast protected bay.
-
-`city-plan.ts` shares roads, graded profiles, river corridors, flat facility platforms and derived full bridge spans. Roads are rounded at intermediate bends; their surveyed grades are checked against 6% regional / 10% mountain targets. The land is generated after those profiles so road shoulders meet an engineered surface. A nearest-road selection prevents overlapping earthwork blends from burying the road.
+`city-architecture.ts` owns designed building families and the architectural palette. `city-buildings.ts` maps 13 existing project slugs to 8 semantic buildings and owns shared sun direction and initial views. Hospitals and worship/residential scenery do not invent projects. The old eight destination IDs remain valid; the airport, passenger/working harbours, crane, optical installation, B1/B2 and underwater habitat remain accessible. The migration translates peripheral assets without scaling their doorways, vehicles or decks.
 
 ## Motion and interaction
 
-Left drag / one finger orbits; right or Shift-drag pans; wheel / pinch zooms. Perspective FOV is 38°. Camera depth precision changes between surface and interior modes. Arrows and HTML controls provide alternatives. Information appears only after selection and closes when exploration resumes. Modal reading, hidden pages, reduced motion and lightweight quality freeze the shared environment clock. Weather, traffic, waves, fish and wind consume that clock without resume jumps. Optional observation speed makes long transport cycles inspectable.
+Left drag / one finger pans on the horizontal ground plane. Rotate is an explicit toggle around the current target; Escape returns to pan. Right drag also rotates. Wheel / pinch zooms with bounded distance. Authored structural volumes and surveyed terrain reject obstructed camera moves without lifting horizontal pans. Mode changes and reading clear residual control inertia. Perspective FOV is 42°. Camera depth precision changes between surface and interior modes. Arrows and HTML controls provide alternatives. Project buildings have restrained DOM name markers; hover/focus identifies the action. Scenery has no empty project card. Building choice opens the shared case content without moving the camera; close restores the settled framing and focus. The directory and contact remain directly visible. Modal reading, hidden pages, reduced motion and lightweight quality freeze the shared environment clock. Weather, traffic, waves, fish and wind consume that clock without resume jumps. Optional observation speed makes long transport cycles inspectable.
 
 ## Asset ownership
 
 Editable sources are `city-plan.ts`, `city-assets.ts`, `city-life.ts`, `CityTerrain.tsx`, `CityLife.tsx` and `CityInteriors.tsx`. `scripts/build-city.mjs` exports 560 256-metre terrain tiles at three resolutions, district instance data, distant silhouettes, water depth and the fallback map. Generated assets carry a source fingerprint in their request URL. No Blender or external model dependency is required.
 
-Near tiles suppress the coarse terrain underneath through an explicit coverage texture. Materials with different shader variants have separate program cache keys. Region assets load on demand; whole-island framing uses simplified buildings. Ocean normals and highlights use the actual perspective camera; sea colour is re-applied after asynchronous depth loading. The dry dock is excluded from the sea surface. Postprocessing uses MSAA, restrained bloom and output colour conversion. Local shadows follow the observed district. Standard quality caps DPR at 1.5; lightweight quality uses DPR 1, lower terrain detail and no animated environment or live shadows.
+Near tiles suppress the coarse terrain underneath through an explicit coverage texture. Materials with different shader variants have separate program cache keys. Region assets load on demand; whole-island framing uses simplified buildings. Ocean geometry concentrates vertices near the city, with low-frequency displacement, analytic wave slopes, distance-filtered capillary detail, depth colour and Fresnel sky response. The sun direction is shared by the sky, directional light, water and baked window environment; sea colour is re-applied after asynchronous depth loading. The dry dock is excluded from the sea surface. Postprocessing uses MSAA, restrained bloom and output colour conversion. Local shadows follow the observed district. Standard quality caps DPR at 1.5; lightweight quality uses DPR 1, lower terrain detail, one in three simplified woodland trees and no animated environment or live shadows.
 
 ## Hover and focus
+
+UI card containers use a shared graphite material: near-black #0d0f12, raised grey #181a1e and a #ffffff22 resting edge. `app/globals.css` owns `--card-*` tokens; `data-card-surface` applies the material to project cards, full demo windows, place sheets, dialogs and floating control/status containers. Standard cards have 16px corners, dialogs 20px, toolbars 12px and small status containers 10px; full-screen mobile dialogs retain square corners. World Pass faces retain their original foil art over a translucent black material.
+
+`components/ui/CardLighting.tsx` owns delegated mouse tracking across all routes and dynamically mounted dialogs. A 180px radial edge light and wider, dimmer interior light follow the mouse; distance naturally determines which edge segment lights and its intensity. Activation fades over 220ms; cards do not move. Mouse tracking requires a fine hover pointer and ignores touch, inert regions and system/app reduced motion. Touch devices receive a slightly raised static material and momentary feedback when a child action is pressed. Keyboard focus provides a fixed top-centre light and the existing visible focus outline. Static content and actions never depend on hover. Forced-colours mode uses system surfaces and visible borders.
 
 District labels, the HTML zone index and 3D hit proxies share one hover state. Labels reveal a small action caption with a restrained cyan edge. Keyboard focus provides the same feedback. Place labels lift and brighten on hover/focus; on narrow viewports they become numbered 44px targets, while the bottom sheet retains complete project names. Click-vs-drag guards apply to both scene and HTML targets. Reduced motion removes CSS transforms and ambient movement.
 
@@ -96,3 +103,9 @@ Native buttons/links, keyboard equivalents for dragging, visible focus, labelled
 ## Intentional evolution — September 30 city revision
 
 The explicit request for VOGT/Meatopia density supersedes the previous graphite landscape and isolated exhibit stages. Dark HTML surfaces and the original pass are preserved; the world changes to a sunlit city with a ring campus. The persistent sidebar is replaced by an on-demand directory so the landscape has room. No external model or texture dependency is introduced. Repeated facade, vegetation and street components share geometry/material instance batches.
+
+## World-as-UI acceptance — September 30
+
+The city is original procedural architecture, with shared opaque window/mullion batches and no purchased, downloaded or scraped models. The sky uses a world-direction shader with layered cloud density; it is not a screen-fixed sun. A separate horizon overview deliberately frames the sun. Standard quality uses finite local shadows and a small baked reflection environment; low quality is a still scene at DPR 1. A still postcard and server-rendered project routes preserve reading access. Runtime timings are measured locally, never transmitted; see `output/playwright/city-rebuild/` for audit, checkpoints, screenshots and actual results.
+
+Durable DOM palette and original World Pass remain unchanged. Building markers and direct work/contact links use the existing dark coastal navigation material and cyan accent. New styles live at the end of `app/globals.css`; project dialogs reuse the canonical `Dialog` and `ProjectContent` owners.

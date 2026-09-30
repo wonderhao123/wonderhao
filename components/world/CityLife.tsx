@@ -47,7 +47,7 @@ function Walker({path,index,clock,animal=false}:{path:V3[];index:number;clock:Cl
 }
 function Car({index,clock,bus=false}:{index:number;clock:Clock;bus?:boolean}){
  const ref=useRef<THREE.Group>(null),wheels=useRef<(THREE.Group|null)[]>([]);const path=useMemo(()=>{
-  return sampleRoad({id:'traffic',width:12,points:[[-354,20.6,-234],[354,20.6,-234],[354,20.6,234],[-354,20.6,234],[-354,20.6,-234]]});
+  return sampleRoad({id:'traffic',width:12,points:[[-336,20.6,-276],[336,20.6,-276],[336,20.6,230],[-336,20.6,230],[-336,20.6,-276]]});
  },[]);
  useFrame(()=>{wheels.current.forEach(w=>{if(w)w.rotation.x=clock.current*9});if(!ref.current)return;const duration=bus?400:140,t=(clock.current+index*(bus?0:17))%duration;const phase=t/(duration*.93);const at=bus?busState(clock.current,index):along(path,Math.min(phase,1));ref.current.position.set(at.p[0]+Math.cos(at.heading)*2,at.p[1]+(bus?.6:0),at.p[2]-Math.sin(at.heading)*2);ref.current.rotation.y=at.heading});
  return <group ref={ref}><Box p={[0,.75,0]} s={[bus?2.5:1.8,1.4,bus?10:4.4]} c={bus?'#8bbf9d':['#f2e4c4','#80a5af','#c48b73','#dce3d1'][index%4]}/><Box p={[0,1.7,0]} s={[bus?2.4:1.6,bus?1.1:.7,bus?9.6:2.6]} c="#47717d"/>{[-1,1].flatMap((s,si)=>[-1,1].map((a,ai)=><group key={`${s}:${a}`} ref={el=>{wheels.current[si*2+ai]=el}} position={[s*(bus?1.15:.83),.4,a*(bus?3.3:1.4)]}><mesh rotation={[0,0,Math.PI/2]}><cylinderGeometry args={[.4,.4,.3,10]}/><meshStandardMaterial color="#374643"/></mesh><Box p={[s*.16,0,0]} s={[.02,.55,.08]} c="#bbc2b5"/></group>))}</group>
@@ -63,7 +63,7 @@ export function CityLife({clock,region,low}:{clock:Clock;region:string;low:boole
  <Birds clock={clock} low={low}/>{[0,1].map(i=><Car key={'bus'+i} index={i} bus clock={clock}/>)}
  {region==='airport'&&<><Plane clock={clock} index={0}/><Plane clock={clock} index={1}/><group position={[2240,16.5,255]} rotation={[0,Math.PI/2,0]}><Aircraft scale={.55}/></group></>}
  {(region==='arrival'||region==='works')&&vesselSpecs.map((_,i)=>(region==='works' ? i>2:i<3)&&<Vessel key={i} index={i} clock={clock}/>)}
- {region==='works'&&<group position={[-2190,2.5,1365]}><Ship kind={4}/></group>}
+ {region==='works'&&<group position={[-940,2.5,265]}><Ship kind={4}/></group>}
  {(region==='town'||region==='archive'||region==='station')&&<>{paths.slice(0,low?8:24).map((p,i)=><Walker key={i} path={p} index={i} clock={clock}/>)}{Array.from({length:low?3:8},(_,i)=><Car key={i} index={i} clock={clock}/>)}{Array.from({length:low?2:6},(_,i)=>{const x=-440-i*25,z=-500;const h=terrainHeight(x,z);return <Walker key={'animal'+i} animal index={i} clock={clock} path={[[x,h,z],[x-20,h,z-10],[x-30,h,z+10],[x,h,z]]}/>})}</>}
  </>;
 }

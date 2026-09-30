@@ -20,7 +20,7 @@ export const defaultSettings: WorldSettings = {
   quality: "auto",
   dusk: false,
   reducedMotion: false,
-  weather: "auto",
+  weather: "sunny",
 };
 export function cleanNickname(value: string) {
   return Array.from(value.replace(/[\p{Cc}\p{Cf}]/gu, "").trim())
@@ -78,7 +78,7 @@ export function parseSettings(raw: string | null): WorldSettings {
       quality: p?.quality === "low" ? "low" : "auto",
       dusk: p?.dusk === true,
       reducedMotion: p?.reducedMotion === true,
-      weather: ["sunny", "cloudy", "rain"].includes(p?.weather) ? p.weather : "auto",
+      weather: ["auto", "sunny", "cloudy", "rain"].includes(p?.weather) ? p.weather : "sunny",
     };
   } catch {
     return { ...defaultSettings };

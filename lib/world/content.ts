@@ -31,7 +31,7 @@ export const places: Place[] = [
     name: "Arrival Harbour",
     short: "The harbour",
     number: "01",
-    position: [100, 8, 1510],
+    position: [100, 8, 510],
     description:
       "Every visit begins by the water. Pick a direction, take your time, and make this little island your own.",
     stamp: "ARRIVED",
@@ -41,7 +41,7 @@ export const places: Place[] = [
     name: "Harbour Works",
     short: "Harbour works",
     number: "02",
-    position: [-1890, 9, 1330],
+    position: [-640, 9, 230],
     description:
       "The working edge of the island. A place for systems that move things forward, from an order to its final delivery.",
     stamp: "BUILDER",
@@ -51,7 +51,7 @@ export const places: Place[] = [
     name: "The Ring",
     short: "The ring campus",
     number: "03",
-    position: [80, 96, -680],
+    position: [80, 76, -480],
     description:
       "A white ring above the town. An independent studio, an underground exhibition lab, and a place to understand how this world is made.",
     stamp: "NEIGHBOUR",
@@ -61,7 +61,7 @@ export const places: Place[] = [
     name: "Archive Grove",
     short: "Archive grove",
     number: "04",
-    position: [-520, 24, -270],
+    position: [-220, 20, 65],
     description:
       "A quiet place for thoughts to return. Explore tools for finding meaning in information and making room for focus.",
     stamp: "THINKER",
@@ -71,7 +71,7 @@ export const places: Place[] = [
     name: "Atelier Quarter",
     short: "The atelier",
     number: "05",
-    position: [225, 20, 165],
+    position: [145, 20, 150],
     description:
       "An open studio for interfaces, identities and small experiments. Come for the details. Stay for the light.",
     stamp: "OBSERVER",
@@ -81,13 +81,13 @@ export const places: Place[] = [
     name: "Field Station",
     short: "Field station",
     number: "06",
-    position: [-240, 39, -610],
+    position: [-220, 20, -145],
     description:
       "Where the path meets the mountain. Experiments in resilient software, connected systems and world building.",
     stamp: "EXPLORER",
   },
   {id:"airport",name:"East Coast Airport",short:"Airport",number:"07",position:[2150,14,-80],description:"A gateway on the eastern shore. Watch arrivals, departures and the ground operations between them.",stamp:"AVIATOR"},
-  {id:"dive",name:"Dive Centre",short:"Dive centre",number:"08",position:[1540,7,1650],description:"Beyond the working harbours, a quieter bay. Collect your dive kit and discover the living reef below.",stamp:"OCEAN"},
+  {id:"dive",name:"Dive Centre",short:"Dive centre",number:"08",position:[480,7,270],description:"Beyond the working harbours, a quieter bay. Collect your dive kit and discover the living reef below.",stamp:"OCEAN"},
 ];
 export const projects: Project[] = [
   {

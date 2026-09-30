@@ -6,17 +6,21 @@ export function Dialog({
   onClose,
   children,
   wide = false,
+  restoreFocus,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  restoreFocus?:()=>HTMLElement|null;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const close = useRef(onClose);
+  const focus = useRef(restoreFocus);
   useEffect(() => {
     close.current = onClose;
-  }, [onClose]);
+    focus.current = restoreFocus;
+  }, [onClose,restoreFocus]);
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -31,7 +35,8 @@ export function Dialog({
       d.removeEventListener("cancel", cancel);
       d.close();
       requestAnimationFrame(() => {
-        if (previous?.isConnected) previous.focus();
+        const target=focus.current?.()??previous;
+        if (target?.isConnected) target.focus();
       });
     };
   }, []);
@@ -39,6 +44,7 @@ export function Dialog({
     <dialog
       ref={ref}
       className={`world-dialog ${wide ? "wide" : ""}`}
+      data-card-surface=""
       aria-label={title}
     >
       <div className="dialog-heading">

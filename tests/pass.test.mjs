@@ -82,23 +82,23 @@ test("malformed settings use safe defaults and preserve explicit preferences", (
     quality: "auto",
     dusk: false,
     reducedMotion: false,
-    weather: "auto",
+    weather: "sunny",
   });
   assert.deepEqual(parseSettings("null"), {
     quality: "auto",
     dusk: false,
     reducedMotion: false,
-    weather: "auto",
+    weather: "sunny",
   });
   assert.deepEqual(parseSettings('{"quality":"ultra","dusk":"true"}'), {
     quality: "auto",
     dusk: false,
     reducedMotion: false,
-    weather: "auto",
+    weather: "sunny",
   });
   assert.deepEqual(
     parseSettings('{"quality":"low","dusk":true,"reducedMotion":true}'),
-    { quality: "low", dusk: true, reducedMotion: true, weather:"auto" },
+    { quality: "low", dusk: true, reducedMotion: true, weather:"sunny" },
   );
 });
 

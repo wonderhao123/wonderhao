@@ -52,4 +52,8 @@ World → Zone → Content Scene → Project is encoded by `place`, `scene` and 
 
 ## City survey and generated assets
 
-`lib/world/city-plan.ts` is the 7.168 × 5.120 km metre-based survey. `city-assets.ts` generates architecture and `city-life.ts` owns deterministic transport. Run `npm run generate:city` after changing either survey or static parts; build hooks do this automatically. Generated tiles and district JSON live under `public/world/city`.
+`lib/world/city-plan.ts` is the 7.168 × 5.120 km metre-based survey. `city-architecture.ts` authors the compact city, `city-buildings.ts` maps cases to buildings, `city-assets.ts` generates the peripheral architecture and `city-life.ts` owns deterministic transport. Run `npm run generate:city` after changing either survey or static parts; build hooks do this automatically. Generated tiles and district JSON live under `public/world/city`.
+
+The inhabited portfolio precinct is now approximately 760 × 680 m, with legacy airport/harbour infrastructure reachable through the place directory. The numerical outer survey remains 7.168 × 5.120 km for the existing runway and shipping routes. Empty-water terrain tiles are lazy-loaded; this is not the inhabited land area. Camera input lives in `CameraRig.tsx`, sky in `CoastalEnvironment.tsx`, water in `CoastalWater.tsx` and the fixed offshore observatory in `ResearchFacility.tsx`. All 13 original cases keep their slugs and content.
+
+If the host blocks Turbopack's local worker port, the supported verification fallback is `npm run build:static -- --webpack`, followed by `npx opennextjs-cloudflare build --skipNextBuild` to package the verified build. Neither command deploys. Actual validation, remaining visual limitations and benchmark conditions are recorded in `output/playwright/city-rebuild/AUDIT.md`.
