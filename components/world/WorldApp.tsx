@@ -794,32 +794,6 @@ export function WorldApp() {
             </Link>
           </header>
           <div className="arrival-layout">
-            <div className="arrival-copy">
-              <span className="eyebrow">WONDERHAO / ACCESS PORTAL</span>
-              <h1>
-                A world
-                <br />
-                beyond the
-                <br />
-                <em>interface.</em>
-              </h1>
-              <p>
-                A living atlas of software, design and experiments,
-                <br className="desktop-only" /> connected by curiosity. Your
-                pass starts here.
-              </p>
-              <div className="arrival-byline">
-                <span className="byline-mark">C.</span>
-                <div>
-                  <strong>A world by Carl Chong</strong>
-                  <span>Software engineer & curious maker</span>
-                </div>
-              </div>
-              <div className="arrival-footnote">
-                <Compass size={15} />
-                <span>One pass. Every district. Follow your curiosity.</span>
-              </div>
-            </div>
             <WorldPass
               key={pass.id}
               pass={pass}
@@ -829,10 +803,7 @@ export function WorldApp() {
               storageAvailable={storageAvailable}
             />
           </div>
-          <footer>
-            <span>MADE WITH INTENTION. OPEN TO EXPLORATION.</span>
-            <span>WORLD → ZONE → SCENE → PROJECT</span>
-          </footer>
+
         </section>
       )}
       {panel && (

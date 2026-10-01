@@ -3472,3 +3472,124 @@ html {
 .world-app[data-world-ready="false"] .world-viewport { opacity:0; }
 .world-app[data-world-ready="false"] .arrival-screen { background-color:#0b1119; }
 .world-app[data-world-ready="false"] .world-reveal .reveal-orbit { will-change:transform; }
+
+/* Arrival is a single personal object, with its invitation on the card. */
+.arrival-screen > header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+}
+.arrival-screen .arrival-layout {
+  display: flex;
+  justify-content: center;
+  min-height: 100svh;
+  max-width: none;
+  padding: 90px 24px;
+}
+.arrival-layout > .pass-experience {
+  position: relative;
+  transform: none;
+  margin: 0;
+}
+.arrival-layout .pass-tools {
+  position: absolute;
+  top: 100%;
+  width: 100%;
+  justify-content: center;
+}
+.pass-card {
+  cursor: default;
+}
+.pass-person > .eyebrow {
+  display: block;
+}
+.pass-name-edit {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 4px;
+  align-items: center;
+  margin-top: 7px;
+  min-height: 32px;
+  max-width: 100%;
+}
+.pass-name-edit input {
+  grid-area: 1 / 1;
+  width: 0;
+  min-width: 100%;
+  padding: 3px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #fff;
+  font: 400 18px var(--font-geist-sans), sans-serif;
+  caret-color: var(--accent);
+  text-overflow: ellipsis;
+  cursor: text;
+}
+.pass-name-measure {
+  grid-area: 1 / 1;
+  visibility: hidden;
+  overflow: hidden;
+  white-space: pre;
+  font: 400 18px var(--font-geist-sans), sans-serif;
+  padding: 3px 0;
+}
+.pass-name-edit input::placeholder {
+  color: #fff;
+  opacity: 1;
+}
+.pass-name-edit input:hover {
+  box-shadow: 0 1px 0 #67e8f980;
+}
+.pass-name-edit input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 4px;
+}
+.pass-name-caret {
+  width: 1px;
+  height: 20px;
+  margin-left: 3px;
+  flex: none;
+  background: var(--accent);
+  animation: pass-caret-blink 1.2s steps(1) infinite;
+}
+.pass-name-edit:focus-within .pass-name-caret {
+  visibility: hidden;
+}
+.pass-entry {
+  min-height: 44px;
+  margin-right: -8px;
+  padding: 8px;
+  color: var(--accent);
+  cursor: pointer;
+}
+.pass-entry:hover {
+  color: #fff;
+}
+.pass-entry svg {
+  transition: transform 180ms ease;
+}
+.pass-entry:hover svg,
+.pass-entry:focus-visible svg {
+  transform: translateX(3px);
+}
+.pass-entry:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+.pass-entry:active {
+  opacity: 0.7;
+}
+.pass-entry:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+@keyframes pass-caret-blink {
+  50% { opacity: 0; }
+}
+[data-reduced-motion="true"] .pass-name-caret {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pass-name-caret { animation: none; }
+  .pass-entry svg { transition: none; }
+}

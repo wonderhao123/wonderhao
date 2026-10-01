@@ -72,6 +72,8 @@ Geist for controls and reading. Geist Mono for place indexes, pass identifiers a
 
 Desktop: no header; only a floating World Pass button in the upper-right, small introduction and directory entrance at lower-left, camera tools bottom-centre. Right-side zone sheets present thematic content scenes. Entering a scene brings the camera closer to its actual district without replacing the surrounding city, then exposes project reading. Breadcrumbs provide explicit parent navigation. On mobile, navigation stays accessible, labels shorten to place indexes, and place details use a bounded bottom sheet. Modal case studies use a full-screen mobile reading surface.
 
+The first arrival shows only the centered World Pass beneath the quiet brand/work navigation. The visitor name is edited directly on the card; a blinking caret hints at editing and stays static with reduced motion. The card’s Explore action opens the world, while the small reverse control reveals the journal. No separate name form or entry button below the card.
+
 ## World composition
 
 The inhabited portfolio city occupies roughly 760 × 680 metres. The wider survey retains the existing airfield and shipping approaches, but the land is a compact peninsula, not a full rectangular island. A continuous curved quay ties a waterfront arcade to a shophouse street, a library court, a campus, a hospital and a clustered business skyline. Upper floors step above occupied podiums, while low foreground buildings preserve sight lines. The Ring sits on a terraced foundation at 76 metres with an engineered access road; the coastal observatory is a complete 70 m sphere centred at [480, 3, 390], with a submerged lower hemisphere, excavated seabed foundation, curved observation ribbons and a lateral landing.
