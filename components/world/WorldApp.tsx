@@ -56,6 +56,7 @@ import {
   type WorldPass as Pass,
   type WorldSettings,
 } from "@/lib/world/pass";
+import {mountainSites} from '@/lib/world/city-plan';
 import {projectBuildings} from "@/lib/world/city-buildings";
 import type { CameraAction, CameraSnapshot } from "./IslandScene";
 import { Dialog } from "./Dialog";
@@ -99,10 +100,14 @@ export function WorldApp() {
   const [metrics,setMetrics]=useState<{fps:number;calls:number;triangles:number}|null>(null);
   const [rotateMode,setRotateMode]=useState(false);
   const [returnTarget,setReturnTarget]=useState<string>();
+  const [focusedBuilding,setFocusedBuilding]=useState<string>();
   const [buildingId,setBuildingId]=useState<string>();
   const [admitted,setAdmitted]=useState(false);
   const activeBuilding=projectBuildings.find(b=>b.id===buildingId);
-  const [ready, setReady] = useState(false);
+  const [readyKey, setReadyKey] = useState('');
+  const [retry,setRetry]=useState(0);
+  const preparationKey=`${settings.quality}:${route.view??'surface'}:${route.level??'exterior'}:${retry}`;
+  const ready=readyKey===preparationKey;
   const [failed, setFailed] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [notice, setNotice] = useState("");
@@ -207,7 +212,7 @@ export function WorldApp() {
       media.removeEventListener("change", motion);
     };
   }, []);
-  useEffect(()=>{const escape=(e:KeyboardEvent)=>{if(e.key==='Escape')setRotateMode(false)};window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape)},[]);
+  useEffect(()=>{const escape=(e:KeyboardEvent)=>{if(e.key==='Escape'){setRotateMode(false);if(!document.querySelector('dialog[open]')){setFocusedBuilding(undefined);document.querySelector<HTMLElement>('.world-viewport')?.focus()}}};window.addEventListener('keydown',escape);return()=>window.removeEventListener('keydown',escape)},[]);
   const savePass = useCallback((update: (p: Pass) => Pass) => {
     const current = passRef.current;
     if (!current) return;
@@ -291,7 +296,7 @@ export function WorldApp() {
       window.location.href,
     );
   }, []);
-  const onReady = useCallback(() => setReady(true), []);
+  const onReady = useCallback(() => setReadyKey(preparationKey), [preparationKey]);
   const onFailure = useCallback(() => {
     setFailed(true);
     setNotice(
@@ -363,6 +368,7 @@ export function WorldApp() {
   return (
     <main
       data-reduced-motion={reduced}
+      data-world-ready={ready||failed}
       className={`world-app ${activeScene ? "in-content-scene" : ""} ${settings.dusk ? "is-dusk" : ""} ${first ? "at-border" : ""}`}
     >
       <a
@@ -374,8 +380,8 @@ export function WorldApp() {
       </a>
       <div
         className="world-viewport"
-        inert={first || modal}
-        tabIndex={first || modal || failed ? -1 : 0}
+        inert={first || modal || !ready}
+        tabIndex={first || modal || failed || !ready ? -1 : 0}
         role="region"
         aria-label={
           failed
@@ -389,13 +395,15 @@ export function WorldApp() {
       >
         {!failed && pass && (
           <SceneBoundary onFailure={onFailure}>
-            <IslandScene
+            <IslandScene key={preparationKey}
               rotateMode={rotateMode}
+              focusedBuilding={focusedBuilding}
+              onFocusBuilding={setFocusedBuilding}
               onBuilding={id=>{setReturnTarget(id);const b=projectBuildings.find(v=>v.id===id);if(!b)return;if(b.projects.length===1){const project=projectBySlug(b.projects[0]);if(project)openProject(project)}else{setBuildingId(id);setPanel("building")}}}
               weather={settings.weather}
               level={route.level}
               underwater={route.view === "underwater" && !!pass?.diveKit}
-              onExplore={()=>{setIntro(false);onExplore()}}
+              onExplore={()=>{setIntro(false);setFocusedBuilding(undefined);onExplore()}}
               onRegionStatus={onRegionStatus}
               dusk={settings.dusk}
               low={settings.quality === "low"}
@@ -740,14 +748,6 @@ export function WorldApp() {
             Skip arrival <ArrowRight size={14} />
           </button>
         )}
-        {!ready && !failed && pass && (
-          <div className="loading-world" data-card-surface="" role="status">
-            <span className="loading-dot" /> Preparing the island…{" "}
-            <button type="button" onClick={() => setPanel("projects")}>
-              Browse projects meanwhile
-            </button>
-          </div>
-        )}
         {failed && (
           <div className="fallback-notice" data-card-surface="">
             <span>Postcard mode · All projects remain available.</span>
@@ -769,6 +769,12 @@ export function WorldApp() {
           </div>
         )}
       </div>
+      {!ready && !failed && pass && !first && !modal && <section className="world-reveal" aria-label="Preparing your world" role="status">
+        <span className="eyebrow">WONDERHAO / ARRIVING</span><div className="reveal-orbit" aria-hidden="true"/>
+        <h2>{Object.values(regionStates).includes('error')?'The crossing needs another try.':regionStates.gpu==='loading'?'Bringing the city into light.':'The bay is taking shape.'}</h2>
+        <p>Preparing the streets, mountain ridges and waterfront for your first view.</p>
+        <div><button className="secondary-button" onClick={()=>{setRegionStates({});setRetry(v=>v+1)}}>Retry</button><button className="secondary-button" onClick={()=>{setRegionStates({});updateSettings({quality:'low'});setRetry(v=>v+1)}}>Use lightweight view</button><Link href="/work">Browse the work ↗</Link></div>
+      </section>}
       {!pass && (
         <div className="initial-loading" role="status">
           <span className="eyebrow">WONDERHAO</span>
@@ -842,6 +848,7 @@ export function WorldApp() {
               places: "Island directory",
             }[panel]
           }
+          restoreFocus={panel==='building'?()=>document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${activeBuilding?.name}"]`)??document.querySelector<HTMLElement>('.world-viewport'):undefined}
           onClose={() => setPanel(null)}
           wide={panel === "projects" || panel === "about"}
         >
@@ -849,7 +856,7 @@ export function WorldApp() {
           {panel === "projects" && (
             <ProjectDirectory
               onProject={openProject}
-              onLocate={p=>{const b=projectBuildings.find(v=>v.projects.includes(p.slug));if(b){navigate({});setPanel(null);setCommand(c=>({id:c.id+1,type:'building',building:b.id}))}}}
+              onLocate={p=>{const b=projectBuildings.find(v=>v.projects.includes(p.slug));if(b){navigate({});setPanel(null);setFocusedBuilding(b.id);setCommand(c=>({id:c.id+1,type:'building',building:b.id}))}}}
             />
           )}{" "}
           {panel === "pass" && pass && (
@@ -864,13 +871,13 @@ export function WorldApp() {
           {panel === "contact" && <AboutContent contactOnly />}
           {panel === "places" && (
             <div className="place-directory">
-              <span className="eyebrow">EIGHT DESTINATIONS. ONE ISLAND.</span>
+              <span className="eyebrow">CITY, COAST & MOUNTAIN PATHS.</span>
               <h2>Where to?</h2>
               {places.map((p) => (
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => selectPlace(p.id)}
+                  onClick={() => {setFocusedBuilding(undefined);selectPlace(p.id)}}
                 >
                   <span>{p.number}</span>
                   <div>
@@ -880,6 +887,7 @@ export function WorldApp() {
                   <ChevronRight size={18} />
                 </button>
               ))}
+              {Object.entries(mountainSites).map(([id,site])=><button key={id} onClick={()=>{navigate({});setPanel(null);setFocusedBuilding(undefined);setNotice(site.description);setCommand(c=>({id:c.id+1,type:'mountain',building:id}))}}><span>↟</span><div><strong>{site.name}</strong><p>{site.description}</p></div><ChevronRight size={18}/></button>)}
               <Link href="/work" className="text-button">
                 <BookOpen size={16} />
                 Prefer a list? Browse every project.

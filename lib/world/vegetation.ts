@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 /** Rain-tree crowns: layered, spreading lobes instead of a single geometric ball. */
-export function makeCanopy(){
+export function makeCanopy(simple=false){
  const pieces:THREE.BufferGeometry[]=[];
- for(let i=0;i<7;i++){
-  const a=i*2.4,g=new THREE.SphereGeometry(1,9,6);const p=g.attributes.position;
+ for(let i=0;i<(simple?4:7);i++){
+  const a=i*2.4,g=new THREE.SphereGeometry(1,simple?6:9,simple?4:6);const p=g.attributes.position;
   for(let k=0;k<p.count;k++){const x=p.getX(k),y=p.getY(k),z=p.getZ(k),r=1+.12*Math.sin(x*7+y*5+z*9+i);p.setXYZ(k,x*r,y*r,z*r)}
   g.scale(i===0?.65:.54,i===0?.5:.34,i===0?.65:.54);
   g.translate(i===0?0:Math.cos(a)*.56,i===0?.35:.08+Math.sin(i*3)*.16,i===0?0:Math.sin(a)*.56);pieces.push(g);

@@ -10,17 +10,22 @@ import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 /** Owns rendering, including demand-mode invalidation. Does not schedule frames. */
 export function SceneFinish({
   low,
+  prepared,
   degraded,
   paused = false,
   onMetrics,
 }: {
   low: boolean;
+  prepared: boolean;
   degraded: boolean;
   paused?: boolean;
   onMetrics?: (metrics: {fps:number;calls:number;triangles:number})=>void;
 }) {
   const { gl, scene, camera, size, invalidate } = useThree();
   const renderedFrames=useRef(0);
+  const shadowPose=useRef(new THREE.Vector3(Infinity,Infinity,Infinity));
+  const shadowTime=useRef(1);
+  useEffect(()=>{Object.assign(gl.shadowMap,{autoUpdate:false,needsUpdate:true});return()=>{Object.assign(gl.shadowMap,{autoUpdate:true})}},[gl]);
   const sample = useRef({seconds:0,frames:0,times:[] as number[]});
   const pipeline = useRef<EffectComposer | null>(null);
   useEffect(() => {
@@ -49,6 +54,9 @@ export function SceneFinish({
     };
   }, [gl, scene, camera, size.width, size.height, low, degraded, invalidate]);
   useFrame(({gl}, dt) => {
+    if(!prepared)return;
+    shadowTime.current+=dt;
+    if(shadowTime.current>.5||camera.position.distanceToSquared(shadowPose.current)>100){gl.shadowMap.needsUpdate=true;shadowTime.current=0;shadowPose.current.copy(camera.position);}
     gl.info.autoReset=false;gl.info.reset();
     gl.domElement.dataset.renderFrame=String(++renderedFrames.current);
     if (pipeline.current) pipeline.current.render(dt);

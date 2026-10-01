@@ -3452,3 +3452,23 @@ html {
   .building-marker .building-marker-name,.building-marker .building-marker-arrow,.building-marker .building-dot { display:none; }
   .building-marker .building-index { display:block; font-family:var(--font-geist-mono),monospace; font-size:12px; }
 }
+
+/* The city owns the resting view; one focus card follows deliberate attention. */
+.building-focus-card { width: 252px; padding: 16px; text-align: left; color: var(--ink); pointer-events: auto; box-shadow: 0 10px 40px #0005; }
+.building-focus-card small { display:block; color:var(--muted); font-size:10px; margin-bottom:8px; }
+.building-focus-card strong { font-size:16px; }
+.building-focus-card p { font-size:12px; line-height:1.6; margin:8px 0 12px; }
+.building-focus-card button { color:var(--accent); padding:8px 0; cursor:pointer; }
+.building-focus-card button:hover { color:white; }
+.world-reveal { position:fixed; inset:0; z-index:35; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; padding:24px; text-align:center; background:#0b1119; }
+.world-reveal h2 { font-size:clamp(24px,4vw,42px); font-weight:400; margin:0; }
+.world-reveal p { color:var(--muted); max-width:420px; line-height:1.7; }
+.world-reveal > div:last-child { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:20px; }
+.reveal-orbit { width:84px; height:84px; border:1px solid #67e8f933; border-top-color:#67e8f9; border-radius:50%; animation:reveal-turn 4s linear infinite; }
+@keyframes reveal-turn { to { transform:rotate(360deg); } }
+[data-reduced-motion="true"] .reveal-orbit { animation:none; }
+@media (prefers-reduced-motion:reduce) { .reveal-orbit { animation:none; } }
+
+.world-app[data-world-ready="false"] .world-viewport { opacity:0; }
+.world-app[data-world-ready="false"] .arrival-screen { background-color:#0b1119; }
+.world-app[data-world-ready="false"] .world-reveal .reveal-orbit { will-change:transform; }

@@ -48,6 +48,7 @@ test("headquarters levels and underwater modes keep valid parentage", () => {
 });
 const planUrl=url(compile("../lib/world/city-plan.ts"));
 const {bridges,sampledRoads,sites,streams,terrainHeight,airport,harbours,weatherAt}=await import(planUrl);
+const plan=await import(planUrl);
 const {busState,busRoutes,aircraftState,vesselState,vesselSpecs}=await import(url(compile("../lib/world/city-life.ts").replace(/(["'])\.\/city-plan\1/g,JSON.stringify(planUrl))));
 test("authored road grades obey the town and mountain budgets",()=>{
  for(const r of sampledRoads)for(let i=1;i<r.points.length;i++){
@@ -56,10 +57,11 @@ test("authored road grades obey the town and mountain budgets",()=>{
  }
 });
 test("the road network is connected from the town, including the summit",()=>{
- const endpoints=sampledRoads.map(r=>[r.points[0],r.points.at(-1)]);
- const reached=new Set([JSON.stringify([0,20,0])]);let changed=true;
- while(changed){changed=false;for(const [a,b] of endpoints){const ka=JSON.stringify(a),kb=JSON.stringify(b);if(reached.has(ka)&&!reached.has(kb)){reached.add(kb);changed=true}if(reached.has(kb)&&!reached.has(ka)){reached.add(ka);changed=true}}}
- for(const [a,b] of endpoints)assert.ok(reached.has(JSON.stringify(a))||reached.has(JSON.stringify(b)));
+ // Include junctions on a road's interior, rather than only matching end nodes.
+ const reached=new Set(['town-west']);let changed=true;
+ const touches=(a,b)=>a.points.some(p=>b.points.slice(1).some((q,i)=>{const t=plan.segment(p[0],p[2],b.points[i],q);return t.d<.01&&Math.abs(t.y-p[1])<.01}));
+ while(changed){changed=false;for(const a of sampledRoads)if(!reached.has(a.id)&&sampledRoads.some(b=>reached.has(b.id)&&(touches(a,b)||touches(b,a)))){reached.add(a.id);changed=true}}
+ for(const r of sampledRoads)assert.ok(reached.has(r.id),`disconnected ${r.id}`);
 });
 test("streams descend and their tributaries join the main river",()=>{
  for(const s of streams)for(let i=1;i<s.length;i++)assert.ok(s[i][1]<s[i-1][1]);
@@ -94,7 +96,8 @@ test("moving ship hulls clear land, not only their centre points",()=>{
 });
 
 const landmarkSpec=JSON.parse(readFileSync(new URL('../lib/world/landmark-spec.json',import.meta.url)));
-const {projectBuildings}=await import(url(compile('../lib/world/city-buildings.ts').replace(/import spec from ['"]\.\/landmark-spec\.json['"];?/,`const spec=${JSON.stringify(landmarkSpec)};`)));
+const architectureUrl=url(compile('../lib/world/city-architecture.ts').replace(/(["'])\.\/city-plan\1/g,JSON.stringify(planUrl)));
+const {projectBuildings}=await import(url(compile('../lib/world/city-buildings.ts').replace(/(["'])\.\/city-architecture\1/g,JSON.stringify(architectureUrl)).replace(/import spec from ['"]\.\/landmark-spec\.json['"];?/,`const spec=${JSON.stringify(landmarkSpec)};`)));
 const registry=await import(content);
 test('each real project has exactly one semantic building and no scene invents a case',()=>{
  const mapped=projectBuildings.flatMap(b=>b.projects);
@@ -116,4 +119,51 @@ test('offshore shell, interaction and seabed share a complete spherical volume',
 
 test('Ring terrain stays below exposed foundation terrace tops',()=>{
  for(const [radius,top] of [[56,74],[60,72],[64,70]])for(let i=0;i<72;i++){const a=i*Math.PI/36;assert.ok(terrainHeight(80+Math.cos(a)*radius,-480+Math.sin(a)*radius)<top-.5);}
+});
+
+const {makeArchitecture}=await import(url(compile('../lib/world/city-architecture.ts').replace(/(["'])\.\/city-plan\1/g,JSON.stringify(planUrl))));
+test('expanded parcels have dry supported foundations and clear the street carriageways',()=>{
+ assert.equal(plan.urbanLots.length,144);
+ for(const lot of plan.urbanLots){
+  for(const sx of [-1,1])for(const sz of [-1,1]){
+   const x=lot.x+sx*lot.width/2,z=lot.z+sz*lot.depth/2;
+   assert.ok(Math.abs(terrainHeight(x,z)-lot.base)<1.5,`${lot.id} floating or buried at ${x},${z}: ${terrainHeight(x,z)}`);
+   for(const road of sampledRoads)for(let i=1;i<road.points.length;i++)assert.ok(plan.segment(x,z,road.points[i-1],road.points[i]).d>road.width/2,`${lot.id} in ${road.id}`);
+  }
+ }
+});
+test('all pitched roofs close against a wall or roof slab, including every historical frontage',()=>{
+ const parts=makeArchitecture();
+ for(const roof of parts.filter(p=>p[0]===4)){
+  const supports=parts.filter(p=>p[0]===0&&Math.abs(p[2]-roof[2])<.1&&Math.abs(p[4]-roof[4])<=3&&p[5]>roof[5]*.7&&p[7]>roof[7]*.5);
+  assert.ok(supports.some(p=>Math.abs(p[3]+p[6]/2-roof[3])<=.25),`unsupported roof ${roof.slice(2,5)}`);
+ }
+});
+test('three enclosing ridges leave the bay and airfield corridor open',()=>{
+ for(const [x,z] of [[-1260,-720],[-180,-1250],[1130,-680]])assert.ok(terrainHeight(x,z)>200);
+ assert.ok(terrainHeight(0,800)<0);
+ for(let x=400;x<2000;x+=40)assert.ok(Math.abs(terrainHeight(x,-Math.max(0,Math.min(80,(x-720)/6))))<30);
+});
+const {resourcesReady}=await import(url(compile('../lib/world/scene-readiness.ts')));
+test('the reveal requires every committed resource, never any-ready or an empty set',()=>{
+ const required=['terrain','town','water','ring'];
+ assert.equal(resourcesReady(required,{town:'ready'}),false);
+ assert.equal(resourcesReady([],{}),false);
+ const states=Object.fromEntries(required.map(id=>[id,'ready']));assert.equal(resourcesReady(required,states),true);
+ for(const bad of ['idle','loading','error'])for(const id of required)assert.equal(resourcesReady(required,{...states,[id]:bad}),false);
+});
+
+test('mountain road cuts blend continuously and support both new access paths',()=>{
+ for(const bounds of [[-1400,-960,-1050,-650],[340,1160,-1400,-650]]){
+  for(let z=bounds[2];z<bounds[3];z+=8)for(let x=bounds[0];x<bounds[1];x+=8){
+   const y=plan.terrainHeight(x,z);
+   for(const [dx,dz] of [[.5,0],[0,.5]])assert.ok(Math.abs(y-plan.terrainHeight(x+dx,z+dz))<3,`discontinuous mountain cut at ${x},${z}`);
+  }
+ }
+ for(const road of plan.sampledRoads.filter(r=>['forest-ascent','field-ascent','north-spine'].includes(r.id))){
+  for(let i=1;i<road.points.length;i++)for(let j=0;j<=10;j++){
+   const a=road.points[i-1],b=road.points[i],t=j/10,p=a.map((v,k)=>v+(b[k]-v)*t);
+   assert.ok(Math.abs(plan.terrainHeight(p[0],p[2])-(p[1]-.18))<.2,`${road.id} loses ground support`);
+  }
+ }
 });

@@ -140,10 +140,10 @@ function WaterMaterial({
   useEffect(() => {
     const u = ref.current?.uniforms;
     if (!u) return;
-    u.deep.value.set(dusk ? "#102b48" : river ? "#226d70" : "#19566b");
-    u.shallow.value.set(dusk ? "#316574" : "#65bea9");
-    u.foam.value.set(dusk ? "#7ea5b0" : "#e0efe5");
-    u.sky.value.set(dusk ? "#52718f" : "#84b1c7");
+    u.deep.value.set(dusk ? "#081725" : river ? "#226d70" : "#19566b");
+    u.shallow.value.set(dusk ? "#143242" : "#65bea9");
+    u.foam.value.set(dusk ? "#345569" : "#e0efe5");
+    u.sky.value.set(dusk ? "#233c58" : "#84b1c7");
     u.daylight.value = dusk ? 0.09 : 1;
     invalidate();
   }, [dusk, river, invalidate, uniforms]);
@@ -172,16 +172,17 @@ export function RiverWaterMaterial({
 }) {
   return <WaterMaterial dusk={dusk} animate={animate} river />;
 }
-export function CoastalWater({dusk,animate,timeRef,weather}:{dusk:boolean;animate:boolean;timeRef?:MutableRefObject<number>;weather?:Weather}) {
+export function CoastalWater({dusk,animate,timeRef,weather,onStatus}:{onStatus:(id:string,state:string)=>void;dusk:boolean;animate:boolean;timeRef?:MutableRefObject<number>;weather?:Weather}) {
  const geometry=useMemo(()=>{const g=new THREE.PlaneGeometry(2,2,384,384),a=g.attributes.position;for(let i=0;i<a.count;i++){const x=a.getX(i),y=a.getY(i);a.setXY(i,Math.sign(x)*x*x*9000,Math.sign(y)*y*y*9000)}return g},[]);
  useEffect(()=>()=>geometry.dispose(),[geometry]);
  const [depth,setDepth]=useState<THREE.DataTexture>();
  const {invalidate}=useThree();
  useEffect(()=>{let alive=true;let texture:THREE.DataTexture|undefined;
-  fetch(cityAsset('water.bin')).then(r=>{if(!r.ok)throw Error('Depth unavailable');return r.arrayBuffer()}).then(buffer=>{
+  onStatus('water','loading');fetch(cityAsset('water.bin')).then(r=>{if(!r.ok)throw Error('Depth unavailable');return r.arrayBuffer()}).then(buffer=>{
    texture=new THREE.DataTexture(new Uint16Array(buffer),512,512,THREE.RedFormat,THREE.HalfFloatType);texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.needsUpdate=true;
    if(alive){setDepth(texture);invalidate()}else texture.dispose();
-  }).catch(()=>{});return()=>{alive=false;texture?.dispose()}
- },[invalidate]);
+  }).catch(()=>{if(alive)onStatus('water','error')});return()=>{alive=false;texture?.dispose()}
+ },[invalidate,onStatus]);
+ useEffect(()=>{if(depth)onStatus('water','ready')},[depth,onStatus]);
  return <mesh geometry={geometry} rotation={[-Math.PI/2,0,0]} position={[0,-.08,0]} frustumCulled={false}><WaterMaterial dusk={dusk} animate={animate} depthMap={depth} timeRef={timeRef} weather={weather}/></mesh>
 }

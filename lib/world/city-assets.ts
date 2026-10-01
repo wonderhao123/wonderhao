@@ -1,6 +1,6 @@
 import {makeArchitecture} from './city-architecture';
-import { sites, terrainHeight, channel, sampledRoads, hash, airport, segment, relocation } from './city-plan';
-export type Part=[shape:number,color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,ry:number];
+import { sites, mountainSites, terrainHeight, channel, sampledRoads, hash, airport, segment, relocation } from './city-plan';
+export type Part=[shape:number,color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,ry:number,owner?:number];
 export type Region='town'|'commons'|'airport'|'arrival'|'works'|'dive'|'archive'|'station'|'nature';
 export function makeRegion(region:Region):Part[]{
  if(region==='town')return makeArchitecture();
@@ -81,6 +81,7 @@ export function makeRegion(region:Region):Part[]{
   const compounds=(['town','commons','airport','arrival','works','dive','archive','station'] as Region[]).flatMap(makeRegion).filter(p=>p[0]===0&&p[5]>12&&p[7]>12);
   for(let i=0;i<2100;i++){
    const x=(hash(i+300)-.5)*2300,z=(hash(i+8700)-.5)*2000-350,y=terrainHeight(x,z);
+   if(Math.max(Math.abs(terrainHeight(x+6,z)-terrainHeight(x-6,z)),Math.abs(terrainHeight(x,z+6)-terrainHeight(x,z-6)))>5||Object.values(mountainSites).some(s=>Math.hypot(x-s.position[0],z-s.position[2])<38))continue;
    if(y<3||Math.abs(x)<380&&z>-380&&z<330||Math.abs(x-2380)<360&&Math.abs(z)<1400||Math.hypot(x-80,z+480)<100||channel(x,z).d<35)continue;
    if(compounds.some(p=>Math.abs(x-p[2])<p[5]/2+5&&Math.abs(z-p[4])<p[7]/2+5))continue;
    if(Object.values(sites).some(p=>Math.hypot(x-p[0],z-p[2])<115))continue;

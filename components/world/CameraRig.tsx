@@ -4,7 +4,7 @@ import {useFrame,useThree} from '@react-three/fiber';
 import {OrbitControls} from '@react-three/drei';
 import type {OrbitControls as Controls} from 'three-stdlib';
 import * as THREE from 'three';
-import {sites,terrainHeight} from '@/lib/world/city-plan';
+import {sites,terrainHeight,mountainSites} from '@/lib/world/city-plan';
 import {makeArchitecture} from '@/lib/world/city-architecture';
 import spec from '@/lib/world/landmark-spec.json';
 import {cityViews,projectBuildings} from '@/lib/world/city-buildings';
@@ -42,6 +42,7 @@ export function CameraRig({p}:{p:Props}){
    if(cmd.type==='restore'&&cmd.snapshot?.version===3){target.fromArray(cmd.snapshot.target);position.fromArray(cmd.snapshot.position)}
    else if(cmd.type==='home'){target.fromArray(cityViews.home.target);position.copy(target).add(new THREE.Vector3(...cityViews.home.offset).multiplyScalar(size.width<700?1.28:1));}
    else if(cmd.type==='overview'){target.fromArray(cityViews.overview.target);position.copy(target).add(new THREE.Vector3(...cityViews.overview.offset).multiplyScalar(size.width<700?1.2:1));}
+   else if(cmd.type==='mountain'&&cmd.building){const site=mountainSites[cmd.building as keyof typeof mountainSites];if(site){target.fromArray(site.position);target.y+=cmd.building==='tower'?24:4;position.copy(target).add(new THREE.Vector3(100,65,120))}}
    else if(cmd.type==='building'&&cmd.building){const b=projectBuildings.find(v=>v.id===cmd.building);if(b){target.fromArray(b.position);position.copy(target).add(new THREE.Vector3(120,155,230))}}
    else if(cmd.type==='focus'&&cmd.place){
     target.set(...sites[cmd.place]);let distance=cmd.place==='airport'?1350:cmd.place==='works'?580:cmd.place==='arrival'?520:cmd.place==='commons'?210:cmd.place==='dive'?190:260;

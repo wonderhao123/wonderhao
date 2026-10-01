@@ -1,6 +1,8 @@
 import spec from './landmark-spec.json';
+import {makeArchitecture} from './city-architecture';
 import type {V3} from './city-plan';
 /** Spatial links only. Titles, case text and related projects come from content.ts. */
+const architecture=makeArchitecture();
 export const projectBuildings = [
  {id:'commerce',name:'Commerce House',position:[89,48,-86],size:[54,60,48],projects:['merchant-operations','optical-ordering']},
  {id:'workflow',name:'Exchange Offices',position:[197,43,-70],size:[64,50,48],projects:['desktop-payroll','renovation-workflow']},
@@ -10,9 +12,15 @@ export const projectBuildings = [
  {id:'studio',name:'Design Studio',position:[83,39,75],size:[50,31,40],projects:['creative-operations','member-mobile']},
  {id:'frontages',name:'Waterfront Arcade',position:[183,28,160],size:[250,18,70],projects:['digital-frontages','social-map']},
  {id:'research',name:'Coastal Observatory',position:spec.observatory.center as V3,size:[70,70,70],projects:['wonderhao-world']},
-] satisfies {id:string;name:string;position:V3;size:V3;projects:string[]}[];
+].map((building,index)=>{
+ const position=building.position as V3,size=building.size as V3;
+ const volumes=architecture.filter(p=>p[9]===index+1&&(p[0]===0||p[0]===4)&&p[5]>=8&&p[6]>=3&&p[7]>=8).map(p=>({position:[p[2],p[3]+(p[0]===4?p[6]/2:0),p[4]] as V3,size:[p[5],p[6],p[7]] as V3}));
+ if(!volumes.length)return {...building,position,size,volumes:[{position,size}]};
+ const min=[0,1,2].map(axis=>Math.min(...volumes.map(v=>v.position[axis]-v.size[axis]/2))),max=[0,1,2].map(axis=>Math.max(...volumes.map(v=>v.position[axis]+v.size[axis]/2)));
+ return {...building,position:min.map((v,i)=>(v+max[i])/2) as V3,size:min.map((v,i)=>max[i]-v) as V3,volumes};
+});
 export const SUN_DIRECTION:V3=[-.65,.42,-.68];
 export const cityViews = {
- home:{target:[-25,30,-65] as V3,offset:[620,530,890] as V3},
- overview:{target:[40,300,-85] as V3,offset:[960,-110,1260] as V3},
+ home:{target:[-60,60,-310] as V3,offset:[1300,1040,1710] as V3},
+ overview:{target:[-50,120,-400] as V3,offset:[1350,120,1980] as V3},
 };

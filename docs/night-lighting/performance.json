@@ -1,0 +1,26 @@
+{
+  "durationMs": 31065.399999976158,
+  "framesMs": {
+    "samples": 1863,
+    "p50": 16.699999928474426,
+    "p95": 22,
+    "p99": 23.100000023841858,
+    "max": 25.199999928474426
+  },
+  "calls": {
+    "samples": 1864,
+    "p50": 495,
+    "p95": 705,
+    "p99": 1036,
+    "max": 1045
+  },
+  "triangles": {
+    "samples": 1864,
+    "p50": 1350774,
+    "p95": 2049592,
+    "p99": 2061020,
+    "max": 2069688
+  },
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "dpr": 1
+}

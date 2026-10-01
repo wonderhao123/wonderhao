@@ -8,7 +8,7 @@ export function CityReflections({dusk}:{dusk:boolean}){
  const {gl,scene,invalidate}=useThree();
  useEffect(()=>{
   const w=256,h=128,data=new Float32Array(w*h*4),sun=new THREE.Vector3(...SUN_DIRECTION).normalize();
-  const top=new THREE.Color(dusk?'#526482':'#9fcee4'),horizon=new THREE.Color(dusk?'#b89582':'#dce6e1'),ground=new THREE.Color('#727e71');
+  const top=new THREE.Color(dusk?'#41618c':'#9fcee4'),horizon=new THREE.Color(dusk?'#7498b5':'#dce6e1'),ground=new THREE.Color(dusk?'#111d2b':'#727e71');
   const direction=new THREE.Vector3(),color=new THREE.Color();
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){
    const lat=(y/h-.5)*Math.PI,lon=(x/w-.5)*Math.PI*2;
@@ -21,7 +21,7 @@ export function CityReflections({dusk}:{dusk:boolean}){
   const pmrem=new THREE.PMREMGenerator(gl),target=pmrem.fromEquirectangular(input),previous=scene.environment;
   // Three owns this mutable scene; attach the baked environment for its lifetime.
   // eslint-disable-next-line react-hooks/immutability
-  scene.environment=target.texture;scene.environmentIntensity=.65;input.dispose();pmrem.dispose();invalidate();
+  scene.environment=target.texture;scene.environmentIntensity=dusk?.30:.65;input.dispose();pmrem.dispose();invalidate();
   return()=>{scene.environment=previous;target.dispose()};
  },[dusk,gl,scene,invalidate]);return null;
 }
