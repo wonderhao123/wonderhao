@@ -68,3 +68,55 @@
 | [EFFEKT Forest Tower](https://www.effekt.dk/foresttower) | 收腰结构与连续螺旋步道参考 | 只借鉴形态原则；本项目自行生成几何，无下载模型/纹理或复制代码 |
 
 可编辑源在 `city-plan.ts`、`city-architecture.ts`、`city-assets.ts`、`MountainPlaces.tsx` 和现有地标生成脚本。`npm run generate:city`可重复生成必要部署资源（版本`82283b403561`，全部地形LOD约30MiB；浏览器按需下载，不一次传输全部）。无新增第三方资产，因此没有新增资产许可证义务；原有依赖与地标来源记录继续适用。
+
+## 追加：机场、休闲海湾与分区港口 · 2026-10-01
+
+本次基于已推送的 `19517d5b` 继续，保留工作区已有的 Ring 与登岛卡片改动。新增机场塔台、573 个跑道/滑行道指示光点，以及机场/港区/海湾共 58 组实体灯具与共享照明覆盖。The Ring、13 个真实项目、原有船舶泊位/航线和潜水装备流程保持。
+
+- 机场：高柱塔台、全景控制室、挑檐与红色信标；跑道边灯、中线、入口/末端及滑行道灯。灯色分工参考 [FAA AIM Airport Lighting](https://www.faa.gov/air_traffic/publications/aim_html/chap2_section_1.html)，属于视觉化简化，不作为机场运行规范模拟。
+- 潜水海湾：约 480m 弧形沙滩；4 座餐饮休闲亭、外摆桌椅、40 顶遮阳伞与躺椅、棕榈、救生亭、排球场和皮划艇。连续步道连接潜水设施，岸坡切面与步道标高一致。球体外壳、步道和近岸水面具有夜间层次。
+- 工业港：分道集装箱堆场、3 座门式岸桥、仓库、静态集装箱支线货船；保留干船坞、龙门维修吊架和原有补给船水道。
+- 客运/游艇港：保留邮轮和渡轮泊位，东侧独立设置带会所、栈桥与 10 艘小艇的休闲码头；浅水基床与桩柱支撑同步建立。
+- 照明：复用现有世界光场，材质本色参与泛光响应，保留最多两盏近处实时点光；机场光点为一个批次，低画质也显示。水面反光是共享光场的有界近似，未新增运行依赖。
+
+| 验收项 | 本次证据 |
+|---|---|
+| 机场夜间辨识 | [跑道与停机坪](docs/coastal-rebuild/airport-night.jpg)、[塔台近景](docs/coastal-rebuild/airport-tower-night.jpg) |
+| 沙滩与休闲设施 | [白昼海湾](docs/coastal-rebuild/bay-day.jpg)、[沙滩近景](docs/coastal-rebuild/beach-close.jpg)、[夜间海湾](docs/coastal-rebuild/bay-night.jpg) |
+| 工业/休闲港分区 | [货港夜景](docs/coastal-rebuild/cargo-night.jpg)、[客运与小艇泊位](docs/coastal-rebuild/marina-night.jpg) |
+| 远景与轻量渲染 | [整岛夜景](docs/coastal-rebuild/whole-island-night.jpg)、[390px 低画质跑道](docs/coastal-rebuild/airport-mobile-low.jpg)、[390px 海湾](docs/coastal-rebuild/bay-mobile-low.jpg) |
+| 地形/航线回归 | 36/36 测试通过；新增沙滩干湿剖面、步道支撑、灯光标高与用途、游艇/货船占用范围检查；原有全船体/全航程与飞机跑道互斥检查通过 |
+| 交互 | 桌面与390×844低画质视口实际操作目录→潜水区→领取装备→进入水下；正确到达 `?place=dive&scene=reef&view=underwater`；无横向溢出 |
+| 工程与运行 | TypeScript、相关源文件 ESLint、webpack 生产构建、`git diff --check` 通过；桌面/低画质浏览器脚本与 WebGL 错误为0；设计静态审计0问题 |
+
+验证采用 localhost 生产构建、桌面 Chrome 的1440×960与390×844视口，非手机真机。机场/船舶全周期由确定性路径测试覆盖；浏览器侧验证实际模型与交互，未冒称逐帧人工观看所有航程。新设施为场景内容，餐饮、租赁、排球与游艇没有新增交易或驾驶交互。本轮未提交、推送或部署。
+
+最终海湾夜景（1440×960，标准画质）应用诊断的单次活动采样为 **60 fps / 402 draw calls / 1,298k triangles**；这是本机当前镜头的采样，不是全设备性能保证。
+
+## 追加修复：拖动镜头时灯光跳闪 · 2026-10-01
+
+用户 22:39 录屏中的球体顶部突亮与岸边亮斑切换已定位：`CityNight` 每帧按镜头目标选最近两盏光源，x=475→500 时将球顶 7000 强度光源替换为码头灯，x=575/600 又切换为海滩灯。修复移除镜头驱动的选择和球顶强光，两盏局部补光固定于球体登船口 `[518,6,386]` 与森林塔 `[-1060,166,-720]`；区域光场保持。
+
+实际浏览器回归 `tests/browser/night-lighting.js`：11 个往返镜头采样、真实鼠标拖动后，两盏灯的位置、颜色、范围、强度完全一致；白昼关闭，夜间恢复；无页面错误。36/36 测试、相关 ESLint、webpack 生产构建与差异检查通过。本轮仅修复照明及补充回归/记录，未部署。
+
+## 追加：参考图玻璃球体建筑 · 2026-10-01
+
+原封闭金属外壳与两条粗金色环带替换为完整曲面玻璃幕墙、24 根细竖向框架、15 道银色遮阳环及固定暖光线条。底部为深色水线基座，水下半球、35m 半径、球心位置、深基座和东侧栈桥保留。首层、两层环形夹层、中庭、楼梯开口/斜梁、屋面支承柱、展示桌、休息座椅与中央信息台均为模型几何。
+
+玻璃是唯一透明材质批次：关闭深度写入与投影，独立 shader key，采用外表面渲染；上部玻璃提高反射透明度，首层保持清晰透视。夜间室内暖光、水平灯带随昼夜模式切换；固定实时灯位保持，无镜头驱动的光源跳变。
+
+- 实景：[白昼](docs/glass-pavilion/day.jpg)、[夜景](docs/glass-pavilion/night.jpg)、[俯视](docs/glass-pavilion/roof.jpg)、[背面白昼](docs/glass-pavilion/rear-day.jpg)/[夜景](docs/glass-pavilion/rear-night.jpg)、[390px 轻量模式](docs/glass-pavilion/mobile-low.jpg)。
+- 37 项测试通过；新增标准/轻量模型玻璃透明度、完整球冠、遮阳环、15 圈灯带全周连续性与室内设施检查。完整球体径向法线、深水净空等旧约束继续通过。材质预算测试只为球体玻璃放行一个 BLEND 材质，其他模型仍要求不透明。
+- TypeScript、相关 ESLint、webpack 生产构建与 `git diff --check` 通过。桌面和390×844浏览器视口未出现脚本/WebGL错误；潜水装备→[水下](docs/glass-pavilion/underwater.jpg)→返回岸上实际操作通过，无横向溢出。低画质为桌面模拟，非手机真机。
+- 拖动灯光回归再次通过：11 个往返镜头、真实鼠标拖动及昼夜开关后，两盏灯的位置/强度仍固定。
+- 标准 GLB 7.39 MiB、轻量 GLB 约2.8 MiB，各10个材质批次；没有外部纹理、第三方模型或新增运行依赖。玻璃反射使用现有环境照明，不冒称城市屏幕空间反射。未提交、推送或部署。
+
+## CHIJMES-inspired heritage precinct — 2026-10-01
+
+Replaced the former church and plain apron with a full garden precinct within the existing city block. Includes a Gothic nave, side aisles, coloured lancets, connected flying buttresses, belfry/spire, two-storey open pointed cloisters, classical garden house with rounded bay, central lawn, dining furniture, shade parasols, boundary gates and warm fixed night illumination. Existing neighbouring temple, library, roads and project identities are preserved. This is an adapted composition, not a surveyed replica or a new indoor tour.
+
+Reference research and design decisions: [CHIJMES analysis](docs/chijmes-quarter/design.md). Visual evidence: [day](docs/chijmes-quarter/day.jpg), [night](docs/chijmes-quarter/night.jpg), [roof](docs/chijmes-quarter/roof.jpg), [front](docs/chijmes-quarter/front.jpg), [rear](docs/chijmes-quarter/rear.jpg), [dragged night view](docs/chijmes-quarter/drag-night.jpg), [390px lightweight view](docs/chijmes-quarter/mobile-low.jpg).
+
+Validation: 39/39 tests; `npm run typecheck`; targeted ESLint; `next build --webpack`; `git diff --check`. New assertions cover open arcade geometry, solid jambs, clear lawn/entrances, scenery ownership, retained distant structure and rotated roof support. Browser production verification returned no page/console errors and no horizontal overflow. The pre-existing Three.js Clock deprecation warning remains. Near-quarter standard render sample: 343 draw calls / 980,084 triangles for the complete visible scene; no FPS claim. Corrected camera bounds for rotated wings and included narrow building volumes/spires. Test helper: `tests/browser/heritage-quarter.js`.
+
+No dependency added, no remote asset copied, no deployment performed.

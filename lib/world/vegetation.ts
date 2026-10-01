@@ -51,3 +51,26 @@ export function makeRock(){
  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),r=1+.19*Math.sin(x*4.1+y*7.3+z*5.7);p.setXYZ(i,x*r,Math.max(-.65,y*r),z*r)}
  g.computeVertexNormals();return g;
 }
+
+/** Shared unit hull for marina boats and the moored container feeder. Bow faces -Z. */
+export function makeBoatHull(){
+ const outline=new THREE.Shape();outline.moveTo(-.38,-.5);outline.lineTo(.38,-.5);outline.lineTo(.5,.12);outline.lineTo(.32,.37);outline.lineTo(0,.5);outline.lineTo(-.32,.37);outline.lineTo(-.5,.12);outline.closePath();
+ const g=new THREE.ExtrudeGeometry(outline,{depth:.85,bevelEnabled:true,bevelSize:.04,bevelThickness:.075,bevelSegments:1,steps:1});g.rotateX(-Math.PI/2);g.translate(0,-.425,0);return g;
+}
+
+/** Unit pointed arch, centred in XY; a real open-bottom frame for walk-through cloisters. */
+export function makeGothicArch(frame=true){
+ const s=new THREE.Shape();
+ s.moveTo(-.5,-.5);s.lineTo(-.5,.03);s.quadraticCurveTo(-.48,.28,0,.5);s.quadraticCurveTo(.48,.28,.5,.03);s.lineTo(.5,-.5);
+ if(frame){
+  s.lineTo(.4,-.5);s.lineTo(.4,.02);s.quadraticCurveTo(.39,.22,0,.4);s.quadraticCurveTo(-.39,.22,-.4,.02);s.lineTo(-.4,-.5);
+ }
+ s.closePath();
+ const g=new THREE.ExtrudeGeometry(s,{depth:1,bevelEnabled:false,curveSegments:12});g.translate(0,0,-.5);return g;
+}
+
+/** A rising masonry arch transfers nave thrust into an outer aisle pier. */
+export function makeFlyingButtress(){
+ const s=new THREE.Shape();s.moveTo(-.5,-.5);s.bezierCurveTo(-.35,.04,.10,.43,.5,.5);s.lineTo(.5,.35);s.bezierCurveTo(.10,.28,-.27,-.10,-.5,-.64);s.closePath();
+ const g=new THREE.ExtrudeGeometry(s,{depth:1,bevelEnabled:false,curveSegments:12});g.translate(0,0,-.5);return g;
+}

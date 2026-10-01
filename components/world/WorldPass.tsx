@@ -35,7 +35,8 @@ export function WorldPass({
   const [message, setMessage] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [admitted, setAdmitted] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entering = useRef(false);
+  const animations = useRef<Animation[]>([]);
   const card = useRef<HTMLDivElement>(null);
   const resetTilt = () => {
     card.current?.style.setProperty("--tilt-x", "0deg");
@@ -46,7 +47,7 @@ export function WorldPass({
   };
   useEffect(
     () => () => {
-      if (timer.current) clearTimeout(timer.current);
+      animations.current.forEach((animation) => animation.cancel());
     },
     [],
   );
@@ -66,19 +67,51 @@ export function WorldPass({
       setDownloading(false);
     }
   };
-  const enter = () => {
+  const enter = async () => {
+    if (entering.current) return;
+    entering.current = true;
     onSave(cleanNickname(nickname));
     setAdmitted(true);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => onEnter?.(), 350);
+    resetTilt();
+    const surface = card.current;
+    const tilt = surface?.querySelector<HTMLElement>(".pass-tilt");
+    const arrival = surface?.closest<HTMLElement>(".arrival-screen");
+    if (!tilt || !arrival) {
+      onEnter?.();
+      return;
+    }
+    const reduced = !!surface?.closest('[data-reduced-motion="true"]') ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const play = async (element: HTMLElement, frames: Keyframe[], duration: number) => {
+      const animation = element.animate(frames, { duration, fill: "forwards", easing: "ease-in-out" });
+      animations.current.push(animation);
+      await animation.finished;
+    };
+    try {
+      await play(tilt, reduced ? [{ opacity: 1 }, { opacity: 1 }] : [
+        { transform: "translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg)", offset: 0 },
+        { transform: "translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg)", offset: 0.12 },
+        { transform: "translate3d(0, -20px, 0) rotateY(720deg) rotateZ(0deg)", offset: 0.75 },
+        { transform: "translate3d(0, calc(-100vh - 480px), 0) rotateY(720deg) rotateZ(0deg) scale(0.85)", offset: 1 },
+      ], reduced ? 200 : 2800);
+      await play(arrival, [{ opacity: 1 }, { opacity: 0 }], reduced ? 150 : 500);
+      onEnter?.();
+    } catch (error) {
+      // Unmount cancels the departure; do not enter after leaving this screen.
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      // Optional motion must not prevent entry if the animation engine fails.
+      onEnter?.();
+    }
   };
   return (
-    <div className="pass-experience">
+    <div className={`pass-experience ${admitted ? "is-departing" : ""}`}>
       <div
         ref={card}
+        inert={admitted}
         className={`pass-card ${flipped ? "is-flipped" : ""} ${admitted ? "is-admitted" : ""}`}
         onPointerMove={(event) => {
           if (
+            admitted ||
             event.pointerType !== "mouse" ||
             event.currentTarget.closest('[data-reduced-motion="true"]') ||
             window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -119,17 +152,18 @@ export function WorldPass({
                 <span className="pass-status-dot" />
                 <span>PASS-ID // {passNumber(pass).slice(3)}</span>
               </div>
-              <div className="pass-issuer">WONDERHAO</div>
               <h2>
                 World
                 <br />
                 <span>Pass.</span>
               </h2>
               <div className="pass-role">
-                <i /> ISLAND EXPLORER
+                <i /> EXPLORER
               </div>
               <div className="pass-person">
-                <label className="eyebrow" htmlFor="visitor-name">ISSUED TO</label>
+                <label className="eyebrow" htmlFor="visitor-name">
+                  ISSUED TO
+                </label>
                 <div className="pass-name-edit">
                   <input
                     id="visitor-name"
@@ -147,19 +181,20 @@ export function WorldPass({
                       onSave(name);
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === "Enter" && !event.nativeEvent.isComposing)
+                      if (
+                        event.key === "Enter" &&
+                        !event.nativeEvent.isComposing
+                      )
                         event.currentTarget.blur();
                     }}
                   />
-                  <span className="pass-name-measure" aria-hidden="true">{nickname || "Fellow explorer"}</span>
+                  <span className="pass-name-measure" aria-hidden="true">
+                    {nickname || "Fellow explorer"}
+                  </span>
                   <span className="pass-name-caret" aria-hidden="true" />
                 </div>
               </div>
               <div className="pass-baseline">
-                <div>
-                  <span className="micro-label">PERSONAL EDITION</span>
-                  <span>{passNumber(pass)}</span>
-                </div>
                 {first ? (
                   <button
                     type="button"
@@ -171,18 +206,11 @@ export function WorldPass({
                     {admitted ? "WELCOME" : "EXPLORE"} <ArrowRight size={16} />
                   </button>
                 ) : (
-                  <span className="pass-connect">EXPLORE <ArrowRight size={12} /></span>
+                  <span className="pass-connect">
+                    EXPLORE <ArrowRight size={12} />
+                  </span>
                 )}
               </div>
-              <div className="pass-footer">
-                <span>FIRST ARRIVAL</span>
-                <span>{issuedDate(pass).toUpperCase()}</span>
-              </div>
-              {admitted && (
-                <div className="admitted-seal">
-                  <Check size={16} /> WELCOME ABOARD
-                </div>
-              )}
             </div>
             <div
               className="pass-face pass-back"
@@ -191,10 +219,6 @@ export function WorldPass({
               inert={!flipped}
             >
               <HoloFoil />
-              <div className="pass-topline">
-                <span>WONDERHAO</span>
-                <span className="pass-status-dot" />
-              </div>
               <h3>
                 Your little
                 <br />
@@ -215,12 +239,6 @@ export function WorldPass({
                 ))}
               </div>
               <div className="pass-creator">
-                {/* eslint-disable-next-line @next/next/no-img-element -- original vector identity mark */}
-                <img
-                  className="pass-creator-logo"
-                  src={assetPath("/card/creator-logo.svg")}
-                  alt="NODEGRIP"
-                />
                 <span className="micro-label">A WORLD BY</span>
                 <strong>{profile.name}</strong>
                 <p>Software, playful systems & considered interfaces.</p>
@@ -239,14 +257,22 @@ export function WorldPass({
         <button
           type="button"
           className="text-button"
+          disabled={admitted}
           onClick={() => setFlipped(!flipped)}
         >
           <RotateCw size={14} /> {flipped ? "Front of pass" : "Turn it over"}
         </button>
-        {!first && <span>{pass.stamps.length} / {places.length} places visited</span>}
+        {!first && (
+          <span>
+            {pass.stamps.length} / {places.length} places visited
+          </span>
+        )}
       </div>
-      {!first && pass.diveKit && <p className="dive-endorsement">DIVE KIT · READY TO EXPLORE</p>}
-      {!first && <div className="pass-form">
+      {!first && pass.diveKit && (
+        <p className="dive-endorsement">DIVE KIT · READY TO EXPLORE</p>
+      )}
+      {!first && (
+        <div className="pass-form">
           <button
             type="button"
             className="primary-button"
@@ -256,18 +282,21 @@ export function WorldPass({
             <Download size={16} />
             {downloading ? "Creating your image…" : "Download your pass"}
           </button>
-        <p className="pass-note">
-          {storageAvailable
-            ? "Yours to keep. Saved in this browser, no account needed."
-            : "Browser storage is unavailable. You can explore, but this pass will not be saved after you leave."}
+          <p className="pass-note">
+            {storageAvailable
+              ? "Yours to keep. Saved in this browser, no account needed."
+              : "Browser storage is unavailable. You can explore, but this pass will not be saved after you leave."}
+          </p>
+          <p className="status-message" role="status">
+            {message}
+          </p>
+        </div>
+      )}
+      {first && !storageAvailable && (
+        <p className="pass-note" role="status">
+          Browser storage is unavailable. Your pass lasts for this visit.
         </p>
-        <p className="status-message" role="status">
-          {message}
-        </p>
-      </div>}
-      {first && !storageAvailable && <p className="pass-note" role="status">
-        Browser storage is unavailable. Your pass lasts for this visit.
-      </p>}
+      )}
     </div>
   );
 }

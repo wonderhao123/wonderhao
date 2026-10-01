@@ -112,6 +112,38 @@ export const bridges=sampledRoads.flatMap(road=>{
 });
 export const airport={runway:{x:2460,z:0,length:2400,width:45,y:14},taxiX:2350,terminal:[2150,14,-80] as V3};
 export const harbours={cruise:{x:100,z:730,length:220,beam:32},ferry:[[-85,720],[10,720]] as P2[],supply:[[-780,440],[-590,440]] as P2[],drydock:{x:-940,z:265,length:100,width:28}};
+/** Crescent beach survey; the observatory and its deep-water habitat stay west of it. */
+export const bayShore=(x:number)=>445-60*Math.sin(Math.PI*Math.max(0,Math.min(1,(x-600)/480)));
+export type CoastalLight={region:'airport'|'arrival'|'works'|'dive';x:number;y:number;z:number;height:number;radius:number;cool:boolean};
+export const coastalLights:CoastalLight[]=[
+ ...[-250,-100,50,200].map(z=>({region:'airport' as const,x:2265,y:14,z,height:22,radius:68,cool:true})),
+ ...[-370,310].map(z=>({region:'airport' as const,x:2095,y:14,z,height:12,radius:40,cool:true})),
+ ...[-850,-715,-565].flatMap(x=>[105,225].map(z=>({region:'works' as const,x,y:9,z,height:24,radius:64,cool:true}))),
+ ...[-795,-605].flatMap(x=>[320,430,490].map(z=>({region:'works' as const,x,y:8,z,height:7,radius:22,cool:true}))),
+ {region:'works',x:-965,y:9,z:270,height:18,radius:37,cool:true},
+ ...[570,620,670,720,775,820].map(z=>({region:'arrival' as const,x:100,y:8,z,height:7,radius:23,cool:false})),
+ ...[-85,10].flatMap(x=>[585,640,700].map(z=>({region:'arrival' as const,x,y:7,z,height:5,radius:20,cool:false}))),
+ ...[35,110,185,260,330].map(x=>({region:'arrival' as const,x,y:8,z:540,height:8,radius:34,cool:false})),
+ ...[595,650,705,750].map(z=>({region:'arrival' as const,x:310,y:3,z,height:3,radius:18,cool:false})),
+ ...[610,650,690,730,770,810,850,890,930,970,1010,1050].map(x=>({region:'dive' as const,x,y:7,z:bayShore(x)-65,height:8,radius:31,cool:false})),
+ ...[440,485,535,575].map(x=>({region:'dive' as const,x,y:7,z:295,height:6,radius:27,cool:false})),
+ {region:'dive',x:518,y:2,z:348,height:4,radius:20,cool:true},
+ {region:'dive',x:518,y:2,z:386,height:4,radius:24,cool:true},
+];
+/** FAA-inspired visual language: white edges, blue taxi edges, green thresholds, red ends. */
+export const airfieldLights:{x:number;y:number;z:number;color:string;role:string}[]=(()=>{
+ const out:{x:number;y:number;z:number;color:string;role:string}[]=[];
+ const add=(x:number,z:number,color:string,role:string)=>out.push({x,y:14.65,z,color,role});
+ for(let z=-1180;z<=1180;z+=40){
+  for(const side of [-1,1])add(2460+side*24,z,Math.abs(z)>880?'#ffcd68':'#f2f6ff','runway-edge');
+  add(2460,z,'#edf5ff','runway-center');
+  for(const side of [-1,1])add(2350+side*13,z,'#518cff','taxi-edge');
+  add(2350,z,'#76ffc2','taxi-center');
+ }
+ for(const end of [-1,1])for(let dx=-22;dx<=22;dx+=4){add(2460+dx,end*1195,'#ff5056','runway-end');add(2460+dx,end*1188,'#6dffb8','threshold');}
+ for(const z of [-1150,-920,-690,-460,-230,0,230,460,690,920,1050])for(let x=2365;x<2440;x+=15){add(x,z,'#76ffc2','taxi-center');for(const side of [-1,1])add(x,z+side*12,'#518cff','taxi-edge');}
+ return out;
+})();
 export function baseHeight(x:number,z:number){
  // A compact peninsula, an outer airfield and water between; never a uniformly scaled island.
  const main=1-Math.hypot(x/1320,(z+470)/1250);
@@ -138,10 +170,21 @@ export function baseHeight(x:number,z:number){
  const pad=76-Math.max(0,summit-50)*.55;h=pad*(1-summitBlend)+h*summitBlend;
  rect(2380,0,420,2620,14,65);rect(2070,-80,260,470,14,45);
  rect(100,490,290,115,8,20);rect(-730,140,520,180,9,35);rect(480,270,140,85,7,18);
+ // A graded sandy crescent with a level promenade behind it.
+ const shore=bayShore(x),beachMask=smooth(clamp((x-580)/35))*smooth(clamp((1120-x)/40))*smooth(clamp((z-shore+125)/25));
+ h=h*(1-beachMask)+Math.max(-22,Math.min(7,(shore-z)*.115))*beachMask;
+ // Cut a supported pedestrian connection through the former coastal bank.
+ if(x>515&&x<630&&z>280&&z<400){
+  const d=Math.min(segment(x,z,[525,7,297],[575,7,297]).d,segment(x,z,[575,7,297],[610,7,bayShore(610)-65]).d);
+  const amount=1-smooth(clamp((d-7)/9));h=h*(1-amount)+7*amount;
+ }
  // Ship approaches and habitat must stay below sea level, including their hull footprints.
- if(z>545&&x>-180&&x<280)h=Math.min(h,-14-(z-545)*.025);
+ if(z>545&&x>-180&&x<375)h=Math.min(h,-14-(z-545)*.025);
  if(z>230&&x>-1040&&x< -470)h=Math.min(h,-12-(z-230)*.035);
- if(z>320&&x>365&&x<700)h=Math.min(h,-5-(z-320)*.055);
+ if(z>320&&x>365&&x<580)h=Math.min(h,-5-(z-320)*.055);
+ // Sheltered marina shelf supports quay piles without changing the shipping channel.
+ const marinaMask=smooth(clamp((x-195)/25))*smooth(clamp((385-x)/25))*smooth(clamp((z-495)/30))*smooth(clamp((795-z)/30));
+ h=h*(1-marinaMask)-20*marinaMask;
  // Excavated spherical observatory basin, smoothly graded into the surrounding seabed.
  const basin=smooth(clamp((Math.hypot(x-480,z-390)-38)/34));h=Math.min(h,-40)*(1-basin)+h*basin;
  const w=channel(x,z);if(w.d<w.width/2+30){const t=smooth(clamp((w.d-w.width/2)/30));h=(w.y-2)*(1-t)+h*t}

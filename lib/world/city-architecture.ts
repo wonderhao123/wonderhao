@@ -14,7 +14,6 @@ export function makeArchitecture():Part[]{
  const roof=(x:number,y:number,z:number,w:number,h:number,d:number,c=m.terracotta)=>p.push([4,c,x,y,z,w,h,d,0]);
  // Shape 0 is centre-anchored; shape 4 starts at the eave. One wall height drives both.
  const gable=(x:number,z:number,w:number,d:number,wallH:number,roofH:number,wallColor:string,roofColor:string,roofW:number,roofD:number)=>{box(wallColor,x,ground+wallH/2,z,w,wallH,d);roof(x,ground+wallH-.1,z,roofW,roofH,roofD,roofColor)};
- const arch=(c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0)=>p.push([9,c,x,y,z,w,h,d,r]);
  const curvedRoof=(x:number,y:number,z:number,w:number,h:number,d:number)=>p.push([8,m.terracotta,x,y,z,w,h,d,0]);
  const tree=(x:number,z:number,size=1)=>{column(m.bronze,x,ground+2.5*size,z,.28*size,5*size);p.push([6,m.leaves,x,ground+6*size,z,5.6*size,4.5*size,5.6*size,x*.017]);};
  const palm=(x:number,z:number)=>{column(m.bronze,x,24,z,.23,8);p.push([5,m.leaves,x,28,z,5.5,5.5,5.5,x*.013])};
@@ -109,11 +108,7 @@ export function makeArchitecture():Part[]{
  };
  for(let i=0;i<10;i++)shop(-299+i*14,155,i);
  for(let i=0;i<7;i++)shop(-306+i*14,208,i+2);
- // Church: nave, side aisles, portico and bell tower; restrained scale beside the shophouses.
- slab(-90,83,94,108);gable(-85,74,25,60,20,12,m.stone,m.dark,28,65);
- for(const side of [-1,1]){gable(-85+side*18,73,12,56,10,5,m.stone,m.dark,13,60);for(let i=0;i<5;i++){box(m.concrete,-85+side*25,27,50+i*11,1.8,15,3);box(m.glass,-85+side*24.2,28,54+i*11,.3,5,2.7)}}
- gable(-85,110,14,15,42,13,m.stone,m.dark,16,18);box(m.bronze,-85,74,110,.4,8,.4);box(m.bronze,-85,75,110,4,.35,.35);entry(-85,118,6);
- box(m.dark,-85,53,117.6,6,8,.2);column(m.sand,-85,20.4,142,18,.5);
+ p.push(...makeHeritageQuarter());
  // Temple: enclosed forecourt, red colonnade, layered eaves and a modest gateway.
  slab(-76,202,98,52);box(m.sand,-76,23,183,70,6,1);box(m.stone,-76,24,201,62,8,28);
  for(const side of [-1,1]){box(m.sand,-76+side*42,23,202,1.5,6,48);for(let i=0;i<5;i++)column(m.red,-102+i*13,24,218,.45,8)}
@@ -124,11 +119,6 @@ export function makeArchitecture():Part[]{
  for(let x=-100;x<=-50;x+=10){box(m.red,x,24,215.2,6,6,.4);for(let i=-2;i<=2;i++)box(m.bronze,x+i,24,215.5,.12,5.5,.18);}
  for(let i=0;i<5;i++)box(m.sand,-76,20.3+i*.16,222-i*.5,28,.3,.6);
  column(m.bronze,-76,21.3,220,1.2,1.7);
- // Tower lancets, bell louvres and recessed stone portals, visibly distinct from offices.
- arch(m.dark,-85,25,117.8,5,8,.5);arch(m.sand,-85,54,117.7,8,10,.3);arch(m.dark,-85,54,117.9,6.5,8.8,.3);
- for(let y=51;y<57;y+=.7)box(m.bronze,-85,y,118.1,6,.15,.5);
- for(const side of [-1,1])for(let i=0;i<5;i++)arch(m.glass,-85+side*24.25,28,54+i*11,3,6,.35,Math.PI/2);
- for(const side of [-1,1]){arch(m.glass,-85+side*17,26,102,4,6,.4);box(m.concrete,-85+side*7,32,117.9,1,23,1.4);}
  const waterfrontStart=p.length;
  // Waterfront commercial hall and design offices: open arcade, roof garden, skylights.
  slab(180,139,279,155);box(m.stone,183,27,160,245,14,68);box(m.glass,183,27,195,233,10,.5);
@@ -186,5 +176,126 @@ export function makeArchitecture():Part[]{
   box(m.paving,x,y+.2,z+sign*(d/2+4),w+3,.4,8);
   for(const a of [-1,1])box(m.glass,x+a*w/3,y+2,z+sign*(d/2+.65),7,3,.2);
  }
+ return p;
+}
+
+/** CHIJMES-inspired precinct, adapted to the existing block rather than a measured replica.
+ * All elevations are metres above the common 20 m city datum. Architecture remains scenery.
+ */
+export const heritageBounds={minX:-140,maxX:-12,minZ:27,maxZ:162};
+export function keepDistantArchitecture(p:Part){
+ return p[5]*p[7]>180||(p[2]>=heritageBounds.minX&&p[2]<=heritageBounds.maxX&&p[4]>=heritageBounds.minZ&&p[4]<=heritageBounds.maxZ);
+}
+export function makeHeritageQuarter():Part[]{
+ const p:Part[]=[];
+ const lime='#eee9dd',trim='#f2efe5',slate='#53626a',tile='#a85e48',stone='#d2c4a7',wood='#a48864',iron='#263f4a',leaf='#386947';
+ const add=(shape:number,c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0)=>p.push([shape,c,x,y,z,w,h,d,r,0]);
+ const box=(c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0)=>add(0,c,x,y,z,w,h,d,r);
+ const col=(c:string,x:number,y:number,z:number,r:number,h:number)=>add(1,c,x,y,z,r,h,r);
+ const paving=(x:number,z:number,w:number,d:number)=>box(stone,x,20.57,z,w,.12,d);
+ const pointed=(c:string,x:number,y:number,z:number,w:number,h:number,d:number,r=0,frame=true)=>add(frame?12:14,c,x,y,z,w,h,d,r);
+ const spire=(x:number,z:number,y:number,w:number,h:number)=>add(13,slate,x,y,z,w,h,w);
+ const tree=(x:number,z:number,s=1)=>{col(wood,x,22.7,z,.23*s,5.4);add(6,leaf,x,27,z,4.2*s,3*s,4.2*s,x*.017);};
+ const bollard=(x:number,z:number)=>{col(iron,x,21.05,z,.14,1.1);box('#f5eac7',x,21.65,z,.32,.2,.32);};
+ const table=(x:number,z:number)=>{col(iron,x,21.05,z,.13,1.05);col(wood,x,21.62,z,1.1,.13);for(const dz of [-1.7,1.7]){box(wood,x,21.15,z+dz,1.3,.18,.75);for(const dx of [-.48,.48])box(iron,x+dx,20.81,z+dz,.12,.68,.6);box(wood,x,21.55,z+dz*1.18,1.3,.65,.15);}};
+ box(stone,-76,20.25,94.5,128,.5,135);
+ // The chapel sits to the west of an open lawn. Its lower aisles reveal the clerestory.
+ box(lime,-109,31,76,22,21,54);box(trim,-109,41.4,76,23,.4,55);
+ add(4,slate,-109,41.5,76,24,11,56);
+ for(const side of [-1,1]){
+  const x=-109+side*14;
+  box(lime,x,25.6,76,6,10.2,54);box(trim,x,30.85,76,7,.3,55);add(4,slate,x,30.9,76,7.5,3.2,56);
+  for(let i=0;i<6;i++){
+   const z=52+i*9;
+   // Stepped piers support the aisle eaves; smaller upper piers meet the nave cornice.
+   box(lime,-109+side*18,25.7,z,1.9,10.4,1.7);box(trim,-109+side*18,31,z,2.4,.3,2.2);
+   box(lime,-109+side*11.3,36.3,z,1.1,10.2,1.4);
+   spire(-109+side*18,z,33,2.2,3.6);
+   add(15,lime,-109+side*14.5,36.35,z,7,10.3,1.15,side<0?0:Math.PI);
+  }
+  for(let i=0;i<5;i++){
+   const z=56.5+i*9,r=side*Math.PI/2;
+   pointed('#788fa1',-109+side*17.08,26.4,z,4.1,6.2,.14,r,false);
+   pointed(trim,-109+side*17.25,26.4,z,4.7,6.8,.38,r);
+   box(trim,-109+side*17.46,26,z,.18,5.4,.18);
+   for(const dz of [-.9,.9])pointed(dz<0?'#c49665':'#688e91',-109+side*17.2,26,z+dz,1.3,4.7,.14,r,false);
+   pointed('#788fa1',-109+side*11.08,37.2,z,3.9,5.5,.14,r,false);
+   pointed(trim,-109+side*11.22,37.2,z,4.5,6.1,.35,r);
+   box(trim,-109+side*11.43,36.9,z,.17,4.8,.17);
+  }
+ }
+ // North apse: a faceted end volume, expressed below the main ridge.
+ box(lime,-109,29.5,46,16,18,7);box(trim,-109,38.7,46,17,.4,8);add(4,slate,-109,38.8,46,18,7,9);
+ for(const dx of [-5,0,5]){pointed('#c49665',-109+dx,31,42.42,3.1,9,.15,0,false);pointed(trim,-109+dx,31,42.2,3.6,9.7,.4);}
+ for(const dx of [-14,14]){pointed('#788fa1',-109+dx,25.8,103.08,3,6,.15,0,false);pointed(trim,-109+dx,25.8,103.27,3.8,6.7,.35);}
+ // Five-stage entry tower, with deep lancet portal, paired belfry and a slender octagonal spire.
+ box(lime,-109,39,108,12,37,12);
+ for(const y of [29,38,47,57.6])box(trim,-109,y,108,12.8,.6,12.8);
+ box(lime,-109,58.3,108,12,1,12);spire(-109,108,67.7,12,18);
+ box(trim,-109,77.8,108,.24,3.2,.24);box(trim,-109,78.2,108,1.8,.24,.24);
+ for(const dx of [-5.8,5.8])for(const dz of [-5.8,5.8]){
+  box(lime,-109+dx,39,108+dz,1.3,37,1.3);box(trim,-109+dx,58.5,108+dz,1.9,1.2,1.9);spire(-109+dx,108+dz,61.5,2,4.8);
+ }
+ pointed(wood,-109,25.4,114.08,5.2,8,.18,0,false);pointed(trim,-109,25.6,114.3,7.2,9.4,.7);
+ box(iron,-109,24,114.45,.1,5,.15);
+ for(const side of [-1,1]){
+  pointed('#788fa1',-109+side*1.9,35.2,114.1,2.4,6,.15,0,false);pointed(trim,-109+side*1.9,35.2,114.3,2.9,6.7,.4);
+  for(const r of [0,Math.PI/2,Math.PI,-Math.PI/2]){
+   const dx=side*2.4,dz=6.15,x=-109+dx*Math.cos(r)+dz*Math.sin(r),z=108-dx*Math.sin(r)+dz*Math.cos(r);
+   pointed(iron,x,52,z,3.2,6.8,.18,r,false);pointed(trim,x+Math.sin(r)*.18,52,z+Math.cos(r)*.18,3.8,7.5,.4,r);
+   for(let y=50;y<54;y+=.65)box(wood,x+Math.sin(r)*.24,y,z+Math.cos(r)*.24,2.5,.13,.18,r);
+  }
+ }
+ // Entrance steps and a continuous, step-free side approach around the shallow landing.
+ for(let i=0;i<4;i++)box(stone,-109,20.57+i*.12,119-i*.9,17,.14,1);
+ paving(-109,138,33,34);paving(-86,115,9,30);
+ // Two-storey cloister wings. Arcade openings are real holes; occupied rooms sit behind.
+ const wing=(cx:number,cz:number,length:number,r:number)=>{
+  const b=(c:string,x:number,y:number,z:number,w:number,h:number,d:number)=>box(c,cx+x*Math.cos(r)+z*Math.sin(r),y,cz-x*Math.sin(r)+z*Math.cos(r),w,h,d,r);
+  b(lime,0,28.5,-2,length,16,10);b(trim,0,28.6,2,length+1,.45,18);b(trim,0,36.5,2,length+1,.5,18);
+  add(4,tile,cx+2*Math.sin(r),36.65,cz+2*Math.cos(r),20,4.6,length+2,r+Math.PI/2);
+  const bays=Math.round(length/7),step=length/bays;
+  for(let i=0;i<bays;i++){
+   const x=-length/2+(i+.5)*step;
+   for(const y of [24.6,32.4]){
+    pointed(trim,cx+x*Math.cos(r)+10*Math.sin(r),y,cz-x*Math.sin(r)+10*Math.cos(r),step,7.5,.7,r);
+    b(iron,x,y,3.05,step-1.7,5.7,.16);b('#c49665',x,y,3.18,step-2.2,4.8,.14);
+    b(trim,x,y,3.35,.12,4.8,.18);
+    // Rear windows make the street elevations inhabited too.
+    b('#688e91',x,y,-7.08,step-2.1,4.6,.16);b(trim,x,y,-7.2,.16,4.6,.2);
+   }
+   b('#f5eac7',x,27.5,6.6,.25,.25,.25);
+   for(const dx of [-step/2,step/2]){b(trim,x+dx,21,10,.8,1,.95);b(trim,x+dx,25.8,10,.8,.4,.95);}
+   // Open balustrade at the upper gallery, below the pointed arcade springing.
+   b(trim,x,29.3,10,step,.2,.3);for(let j=0;j<5;j++)b(trim,x-step/2+.65+j*(step-1.3)/4,28.9,10,.14,.7,.18);
+  }
+ };
+ wing(-60,35,76,0);wing(-24,85,80,-Math.PI/2);
+ // Caldwell-inspired pavilion: smaller, classical proportions and a sheltered garden verandah.
+ box(lime,-39,27,142,34,13,20);box(trim,-39,33.65,142,35,.4,21);add(4,tile,-39,33.75,142,23,4.5,36,Math.PI/2);
+ for(const side of [-1,1])for(const x of [-51,-43,-35,-27]){box('#688e91',x,28.6,142+side*10.1,3,4.6,.15);for(const dx of [-1.7,0,1.7])box(trim,x+dx,28.6,142+side*10.25,.18,5,.25);for(const y of [26.1,31.1])box(trim,x,y,142+side*10.3,3.8,.25,.55);}
+ box(trim,-39,25,128.5,34,.4,8);for(const x of [-54,-46,-38,-30,-22]){col(trim,x,22.7,125,.22,4.4);box(trim,x,24.6,125,.65,.4,.65);}
+ // A rounded garden-facing bay distinguishes the classical house from the Gothic hall.
+ col(lime,-39,27,148,8,13);col(trim,-39,33.7,148,8.3,.4);add(13,tile,-39,35.95,148,18,4.4,18);
+ for(let i=0;i<5;i++){
+  const a=.18+i*(Math.PI-.36)/4,x=-39+Math.cos(a)*8.05,z=148+Math.sin(a)*8.05,r=Math.PI/2-a;
+  box('#688e91',x,28.6,z,2,4,.15,r);box(trim,x+Math.cos(a)*.15,28.6,z+Math.sin(a)*.15,.13,4.4,.16,r);
+  for(const y of [26.4,30.8])box(trim,x+Math.cos(a)*.12,y,z+Math.sin(a)*.12,2.5,.22,.4,r);
+ }
+ // Garden rooms keep the tall chapel separate from the dining precinct.
+ box('#82996c',-65,20.56,80,37,.14,48);
+ for(const x of [-85,-45])box(stone,x,20.59,80,1.1,.14,51);
+ for(const z of [54.5,105.5])box(stone,-65,20.59,z,41,.14,1.1);
+ paving(-65,115,42,11);paving(-34,87,9,74);
+ for(const [x,z] of [[-83,54],[-47,54],[-83,105],[-47,105],[-132,132],[-130,151],[-65,148]]){
+  box(stone,x,20.8,z,4,.6,4);box(leaf,x,21.3,z,3.5,.7,3.5);tree(x,z,.85);
+ }
+ for(const [x,z] of [[-74,115],[-57,115],[-40,63],[-40,82],[-40,101],[-66,136]])table(x,z);
+ for(const x of [-74,-57]){col(iron,x,22.4,115,.1,3.8);add(13,'#e5d9bc',x,24.15,115,6,1.1,6);}
+ for(const z of [64,93]){box(wood,-81,21.2,z,.75,.2,4);box(wood,-82,21.7,z,.16,.85,4);for(const dz of [-1.5,1.5])box(iron,-81,20.85,z+dz,.65,.7,.15);}
+ // Low enclosure has generous south and east portals, never a sealed compound.
+ for(const [x,w] of [[-130,20],[-67,44],[-23,20]]){box(lime,x,21.8,158,w,2.6,.7);box(trim,x,23.2,158,w+.4,.2,1);}
+ for(const x of [-119,-99,-44]){box(lime,x,22.8,158,1.2,4.6,1.2);spire(x,158,25.7,1.8,1.2);}
+ for(const [x,z] of [[-121,123],[-96,123],[-121,148],[-96,148],[-84,114],[-46,114],[-34,53],[-34,77],[-34,101],[-60,150]])bollard(x,z);
  return p;
 }

@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import {cityAsset} from '@/lib/world/assets';
 import {CITY,bridges,sites,sampledRoads,streams,weatherAt,type Weather,type V3} from '@/lib/world/city-plan';
 import {terrainSurface,architecturalSurface} from '@/lib/world/surface-materials';
-import {makeCanopy,makePalm,makeTempleRoof,makeArch,makeRock} from '@/lib/world/vegetation';
+import {makeCanopy,makePalm,makeTempleRoof,makeArch,makeGothicArch,makeFlyingButtress,makeRock,makeBoatHull} from '@/lib/world/vegetation';
 import {focusSurface} from '@/lib/world/building-focus';
 import type {Part,Region} from '@/lib/world/city-assets';
 const regionCache=new Map<string,Promise<Part[]>>();
@@ -69,17 +69,20 @@ export function CityTerrain({level,low,onStatus,weather,clock}:{level:string;low
  return <>{far&&<TerrainMesh data={far} nx={112} nz={80} x={-3584} z={-2560} w={CITY.width} d={CITY.depth} level={level} weather={weather} clock={clock} coverage={coverage.texture}/>} {tiles.map(t=><Tile key={`${t.x}:${t.z}:${t.n}`} {...t} level={level} weather={weather} clock={clock} onCoverage={onCoverage} onStatus={tileStatus}/>)}</>;
 }
 function Instances({parts,shape,color,dusk,clock,weather}:{parts:Part[];shape:number;color:string;dusk:boolean;clock?:MutableRefObject<number>;weather?:Weather}){
+ const heritageNight=useRef({value:dusk?1:0});useFrame(()=>{heritageNight.current.value=dusk?1:0});
  const material=useRef<THREE.MeshStandardMaterial>(null);const wind=useRef({value:0});useFrame(()=>{wind.current.value=clock?.current??0;if(material.current){const base=["#386574","#36515e","#496574"].includes(color)?.27:.76;material.current.roughness=base*(1-weatherAt(clock?.current??0,weather??"sunny")*.45)}});
- const foliage=shape===5||shape===6||shape===10;const plant=useMemo(()=>shape===5?makePalm():shape===6?makeCanopy():shape===10?makeCanopy(true):shape===8?makeTempleRoof():shape===9?makeArch():shape===2?makeRock():null,[shape]);useEffect(()=>()=>plant?.dispose(),[plant]);
+ const foliage=shape===5||shape===6||shape===10;const plant=useMemo(()=>shape===5?makePalm():shape===6?makeCanopy():shape===10?makeCanopy(true):shape===8?makeTempleRoof():shape===9?makeArch():shape===2?makeRock():shape===11?makeBoatHull():shape===12?makeGothicArch():shape===14?makeGothicArch(false):shape===15?makeFlyingButtress():null,[shape]);useEffect(()=>()=>plant?.dispose(),[plant]);
  const ref=useRef<THREE.InstancedMesh>(null);const matrix=useMemo(()=>new THREE.Object3D(),[]);
  useEffect(()=>{if(!ref.current)return;parts.forEach((p,i)=>{matrix.position.set(p[2],p[3],p[4]);matrix.scale.set(p[5],p[6],p[7]);matrix.rotation.set(0,p[8],0);matrix.updateMatrix();ref.current!.setMatrixAt(i,matrix.matrix)});ref.current.geometry.setAttribute('buildingOwner',new THREE.InstancedBufferAttribute(new Float32Array(parts.map(p=>p[9]??0)),1));ref.current.geometry.computeVertexNormals();ref.current.instanceMatrix.needsUpdate=true;ref.current.computeBoundingSphere()},[parts,matrix]);
- const glow=color==='#A66BFF'||color==='#f5eac7'&&dusk,glass=['#36515e','#496574','#638c94','#70979a','#3f6b76','#386574','#71989d'].includes(color);
+ const stained=['#788fa1','#c49665','#688e91'].includes(color),heritage=color==='#eee9dd';
+ const luminous=['#d5efff','#ff5056'].includes(color),glow=color==='#A66BFF'||color==='#f5eac7'&&dusk,glass=['#36515e','#496574','#638c94','#70979a','#3f6b76','#386574','#71989d'].includes(color);
  return <instancedMesh ref={ref} args={[undefined,undefined,parts.length]} castShadow receiveShadow>
- {plant?<primitive attach="geometry" object={plant}/>:shape===4?<bufferGeometry><bufferAttribute attach="attributes-position" args={[new Float32Array([-.5,0,-.5,.5,0,-.5,0,1,-.5,-.5,0,.5,0,1,.5,.5,0,.5,-.5,0,-.5,0,1,-.5,0,1,.5,-.5,0,-.5,0,1,.5,-.5,0,.5,.5,0,-.5,.5,0,.5,0,1,.5,.5,0,-.5,0,1,.5,0,1,-.5]),3]}/></bufferGeometry>:shape===0?<boxGeometry/>:shape===1?<cylinderGeometry args={[1,1,1,10]}/>:shape===2?<icosahedronGeometry args={[1,2]}/>:<coneGeometry args={[1,2,7]}/>}
- <meshStandardMaterial alphaToCoverage ref={material} side={shape===4||shape===8||foliage?THREE.DoubleSide:THREE.FrontSide} customProgramCacheKey={()=>`city-surface-${glass}-${foliage}-${Boolean(clock)}-${color==='#a48864'?'wood':color==='#a85e48'?'tile':['#d2c4a7','#c8c9bc'].includes(color)?'paving':'plain'}`} onBeforeCompile={shader=>{
+ {plant?<primitive attach="geometry" object={plant}/>:shape===4?<bufferGeometry><bufferAttribute attach="attributes-position" args={[new Float32Array([-.5,0,-.5,.5,0,-.5,0,1,-.5,-.5,0,.5,0,1,.5,.5,0,.5,-.5,0,-.5,0,1,-.5,0,1,.5,-.5,0,-.5,0,1,.5,-.5,0,.5,.5,0,-.5,.5,0,.5,0,1,.5,.5,0,-.5,0,1,.5,0,1,-.5]),3]}/></bufferGeometry>:shape===13?<coneGeometry args={[.5,1,8]}/>:shape===0?<boxGeometry/>:shape===1?<cylinderGeometry args={[1,1,1,10]}/>:shape===2?<icosahedronGeometry args={[1,2]}/>:<coneGeometry args={[1,2,7]}/>}
+ <meshStandardMaterial alphaToCoverage ref={material} side={shape===4||shape===8||foliage?THREE.DoubleSide:THREE.FrontSide} customProgramCacheKey={()=>`city-surface-${glass}-${foliage}-${heritage}-${Boolean(clock)}-${color==='#a48864'?'wood':color==='#a85e48'?'tile':['#d2c4a7','#c8c9bc'].includes(color)?'paving':'plain'}`} onBeforeCompile={shader=>{
   focusSurface(shader,true);architecturalSurface(shader,glass,foliage,color==='#a48864'?'wood':color==='#a85e48'?'tile':['#d2c4a7','#c8c9bc'].includes(color)?'paving':'');
+  if(heritage){shader.uniforms.heritageNight=heritageNight.current;shader.fragmentShader='uniform float heritageNight;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <emissivemap_fragment>',`#include <emissivemap_fragment>\n// Warm facade uplight fades up the plaster instead of turning the whole block emissive.\nfloat wash=exp(-max(0.,surfacePoint.y-23.)/20.);\nfloat bay=.58+.42*pow(.5+.5*cos((surfacePoint.z-52.)*.698),4.);\ntotalEmissiveRadiance+=diffuseColor.rgb*vec3(1.,.71,.40)*heritageNight*wash*bay*.32;`);}
   if(clock&&foliage){shader.uniforms.windTime=wind.current;shader.vertexShader='uniform float windTime;\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.x += sin(windTime*.8+instanceMatrix[3].x*.017+instanceMatrix[3].z*.01)*.035*max(0.,position.y);');}
- }} color={color} roughness={glass?.27:.76} metalness={glass?.42:.04} emissive={glow?(dusk?'#ffcf85':'#b6ced0'):glass&&dusk?'#ffffff':'#000000'} emissiveIntensity={glow?(dusk?1.3:.5):dusk?.85:0}/>
+ }} color={color} roughness={glass?.27:.76} metalness={glass?.42:.04} emissive={stained?color:luminous?color:glow?(dusk?'#ffcf85':'#b6ced0'):glass&&dusk?'#ffffff':'#000000'} emissiveIntensity={stained?(dusk?.85:0):luminous?(dusk?2.5:0):glow?(dusk?1.3:.5):dusk?.85:0}/>
 
  </instancedMesh>;
 }

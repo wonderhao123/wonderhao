@@ -17,7 +17,7 @@ export function CameraRig({p}:{p:Props}){
  const safePose=useRef<{position:THREE.Vector3;target:THREE.Vector3}|null>(null);
  // Reuse the authored building solids. Reject obstructed camera moves without
  // lifting a horizontal pan or requiring a separate physics engine.
- const obstacles=useMemo(()=>makeArchitecture().filter(b=>(b[0]===0||b[0]===4)&&b[5]>=12&&b[6]>=6&&b[7]>=12).map(b=>({x:b[2],z:b[4],w:b[5]/2+3,d:b[7]/2+3,bottom:b[0]===4?b[3]:b[3]-b[6]/2,top:b[3]+b[6]*(b[0]===4?1:.5)+3})),[]);
+ const obstacles=useMemo(()=>makeArchitecture().filter(b=>(b[0]===0||b[0]===4||b[0]===13)&&b[5]>=8&&b[6]>=6&&b[7]>=8).map(b=>({x:b[2],z:b[4],w:(Math.abs(Math.cos(b[8]))*b[5]+Math.abs(Math.sin(b[8]))*b[7])/2+3,d:(Math.abs(Math.sin(b[8]))*b[5]+Math.abs(Math.cos(b[8]))*b[7])/2+3,bottom:b[0]===4?b[3]:b[3]-b[6]/2,top:b[3]+b[6]*(b[0]===4?1:.5)+3})),[]);
  const travel=useRef<{position:THREE.Vector3;target:THREE.Vector3}|null>(null);
  const beforeMode=useRef<CameraSnapshot|null>(null),previousMode=useRef('surface');
  const onCamera=p.onCamera;
@@ -46,7 +46,7 @@ export function CameraRig({p}:{p:Props}){
    else if(cmd.type==='building'&&cmd.building){const b=projectBuildings.find(v=>v.id===cmd.building);if(b){target.fromArray(b.position);position.copy(target).add(new THREE.Vector3(120,155,230))}}
    else if(cmd.type==='focus'&&cmd.place){
     target.set(...sites[cmd.place]);let distance=cmd.place==='airport'?1350:cmd.place==='works'?580:cmd.place==='arrival'?520:cmd.place==='commons'?210:cmd.place==='dive'?190:260;
-    if(cmd.place==='dive'){target.z+=100;distance=330;}if(cmd.place==='arrival'){target.z+=135;distance=620;}if(cmd.place==='works'){target.z+=65;distance=680;}
+    if(cmd.place==='dive'){target.set(730,7,350);distance=820;}if(cmd.place==='arrival'){target.x+=55;target.z+=135;distance=700;}if(cmd.place==='works'){target.z+=65;distance=680;}
     if(cmd.detail)distance*=.75;if(size.width<700)distance*=1.2;position.copy(target).add(new THREE.Vector3(.12,.64,.77).multiplyScalar(distance));
    }else if(cmd.type==='zoom-in'||cmd.type==='zoom-out')position.copy(target).add(offset.setLength(THREE.MathUtils.clamp(offset.length()*(cmd.type==='zoom-in'?.77:1.3),mode==='surface'?160:18,mode==='surface'?3200:220)));
    else if(cmd.type==='rotate'){offset.applyAxisAngle(new THREE.Vector3(0,1,0),Math.PI/2);position.copy(target).add(offset)}

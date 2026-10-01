@@ -121,7 +121,7 @@ test('Ring terrain stays below exposed foundation terrace tops',()=>{
  for(const [radius,top] of [[56,74],[60,72],[64,70]])for(let i=0;i<72;i++){const a=i*Math.PI/36;assert.ok(terrainHeight(80+Math.cos(a)*radius,-480+Math.sin(a)*radius)<top-.5);}
 });
 
-const {makeArchitecture}=await import(url(compile('../lib/world/city-architecture.ts').replace(/(["'])\.\/city-plan\1/g,JSON.stringify(planUrl))));
+const {makeArchitecture,makeHeritageQuarter,keepDistantArchitecture,heritageBounds}=await import(url(compile('../lib/world/city-architecture.ts').replace(/(["'])\.\/city-plan\1/g,JSON.stringify(planUrl))));
 test('expanded parcels have dry supported foundations and clear the street carriageways',()=>{
  assert.equal(plan.urbanLots.length,144);
  for(const lot of plan.urbanLots){
@@ -135,7 +135,10 @@ test('expanded parcels have dry supported foundations and clear the street carri
 test('all pitched roofs close against a wall or roof slab, including every historical frontage',()=>{
  const parts=makeArchitecture();
  for(const roof of parts.filter(p=>p[0]===4)){
-  const supports=parts.filter(p=>p[0]===0&&Math.abs(p[2]-roof[2])<.1&&Math.abs(p[4]-roof[4])<=3&&p[5]>roof[5]*.7&&p[7]>roof[7]*.5);
+  const supports=parts.filter(p=>{
+   const angle=p[8]-roof[8],w=Math.abs(Math.cos(angle))*p[5]+Math.abs(Math.sin(angle))*p[7],d=Math.abs(Math.sin(angle))*p[5]+Math.abs(Math.cos(angle))*p[7];
+   return p[0]===0&&Math.abs(p[2]-roof[2])<.1&&Math.abs(p[4]-roof[4])<=3&&w>roof[5]*.7&&d>roof[7]*.5;
+  });
   assert.ok(supports.some(p=>Math.abs(p[3]+p[6]/2-roof[3])<=.25),`unsupported roof ${roof.slice(2,5)}`);
  }
 });
@@ -166,4 +169,67 @@ test('mountain road cuts blend continuously and support both new access paths',(
    assert.ok(Math.abs(plan.terrainHeight(p[0],p[2])-(p[1]-.18))<.2,`${road.id} loses ground support`);
   }
  }
+});
+
+
+test('crescent beach has dry sand, a supported promenade and a submerged nearshore',()=>{
+ for(let x=632;x<=1060;x+=21){const shore=plan.bayShore(x);
+  assert.ok(terrainHeight(x,shore-22)>1.5&&terrainHeight(x,shore-22)<4,`sand ${x}`);
+  assert.ok(Math.abs(terrainHeight(x,shore-65)-7)<.15,`promenade ${x}`);
+  assert.ok(terrainHeight(x,shore+25)<-1,`nearshore ${x}`);
+ }
+ for(let i=0;i<=20;i++){const t=i/20;assert.ok(Math.abs(terrainHeight(575+35*t,297+(plan.bayShore(610)-65-297)*t)-7)<.01,'beach connection buried in bank');}
+ // The existing deep habitat and full sphere volume cannot be reclaimed as beach.
+ for(const x of [535,550,565])for(const z of [550,560,570])assert.ok(terrainHeight(x,z)<-17);
+});
+test('airfield guidance stays on the airport surface and distinguishes each role',()=>{
+ const lights=plan.airfieldLights;
+ for(const l of lights){assert.ok(Math.abs(terrainHeight(l.x,l.z)-14)<.01);assert.ok(l.y>14.4&&l.y<15);}
+ const colors=role=>new Set(lights.filter(l=>l.role===role).map(l=>l.color));
+ assert.deepEqual([...colors('taxi-edge')],['#518cff']);assert.deepEqual([...colors('taxi-center')],['#76ffc2']);
+ assert.deepEqual([...colors('threshold')],['#6dffb8']);assert.deepEqual([...colors('runway-end')],['#ff5056']);
+ for(const side of [-1,1])assert.ok(lights.filter(l=>l.role==='runway-edge'&&Math.sign(l.x-2460)===side).length>=59);
+});
+test('marina and container feeder footprints stay afloat and clear the working berths',()=>{
+ for(let row=0;row<5;row++)for(const x of [263,284])for(const dx of [-2.5,2.5])for(const dz of [-9,9])assert.ok(terrainHeight(x+dx,615+row*32+dz)<0);
+ for(const x of [-873,-849])for(const z of [329,383,437])assert.ok(terrainHeight(x,z)<0);
+ for(let i=0;i<vesselSpecs.length;i++)for(let t=0;t<360;t+=2){const {p}=vesselState(t,i);
+  assert.ok(Math.abs(p[0]+861)>30||Math.abs(p[2]-383)>85,`vessel ${i} enters cargo ship at ${t}`);
+  assert.ok(p[0]<240||p[0]>320||p[2]<580||p[2]>770,`vessel ${i} enters marina at ${t}`);
+ }
+ for(const region of ['airport','dive','works','arrival'])assert.ok(plan.coastalLights.filter(l=>l.region===region).length>=6);
+});
+
+
+test('heritage precinct keeps its lawn and street entrances open at both detail levels',()=>{
+ const parts=makeHeritageQuarter();
+ assert.ok(parts.length>400);
+ assert.ok(parts.every(p=>p[9]===0),'scenery must not invent project links');
+ assert.ok(parts.every(keepDistantArchitecture),'distant view must retain connected cloisters and spire');
+ for(const p of parts){
+  assert.ok(p.slice(2,9).every(Number.isFinite));
+  assert.ok(p[2]>=heritageBounds.minX&&p[2]<=heritageBounds.maxX&&p[4]>=heritageBounds.minZ&&p[4]<=heritageBounds.maxZ);
+ }
+ const solids=parts.filter(p=>p[0]===0&&p[6]>3);
+ const clear=(x,z)=>!solids.some(p=>{
+  const dx=x-p[2],dz=z-p[4],u=dx*Math.cos(p[8])-dz*Math.sin(p[8]),v=dx*Math.sin(p[8])+dz*Math.cos(p[8]);
+  return Math.abs(u)<p[5]/2&&Math.abs(v)<p[7]/2;
+ });
+ for(const [x,z] of [[-109,158],[-109,141],[-16,128],[-35,128],[-65,80],[-65,55],[-65,105]])assert.ok(clear(x,z),`blocked garden/entry at ${x},${z}`);
+ const tower=parts.find(p=>p[0]===13&&p[2]===-109&&p[4]===108);
+ assert.ok(tower&&tower[3]-tower[6]/2<59&&tower[3]+tower[6]/2>76);
+ assert.ok(parts.filter(p=>p[0]===12).length>60,'both storeys require real pointed arcades');
+});
+
+const THREE=await import('three');
+const vegetation=await import(url(compile('../lib/world/vegetation.ts').replace(/from 'three'/g,`from '${import.meta.resolve('three')}'`).replace(/from 'three\/addons\/utils\/BufferGeometryUtils.js'/g,`from '${import.meta.resolve('three/addons/utils/BufferGeometryUtils.js')}'`)));
+test('pointed cloister arches have traversable openings and solid supporting jambs',()=>{
+ const g=vegetation.makeGothicArch(),material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide}),mesh=new THREE.Mesh(g,material);
+ mesh.updateMatrixWorld();
+ const cast=(x,y)=>new THREE.Raycaster(new THREE.Vector3(x,y,2),new THREE.Vector3(0,0,-1)).intersectObject(mesh);
+ assert.equal(cast(0,-.2).length,0);
+ assert.equal(cast(0,.25).length,0);
+ assert.ok(cast(.45,-.2).length>0);
+ assert.ok(cast(0,.45).length>0);
+ g.dispose();material.dispose();
 });

@@ -23,6 +23,9 @@ export function terrainSurface(shader:THREE.WebGLProgramParametersWithUniforms){
  float shoreBank=smoothstep(coast-14.,coast+1.,p.z)*(1.-smoothstep(coast+34.,coast+43.,p.z))*(1.-smoothstep(365.,415.,abs(p.x)));
  rock=max(rock,shoreBank*.92);
  float beach=1.-smoothstep(1.8,6.5,p.y+macro*2.);
+ float bay=445.-60.*sin(3.14159265*clamp((p.x-600.)/480.,0.,1.));
+ float sandCrescent=smoothstep(600.,625.,p.x)*(1.-smoothstep(1080.,1110.,p.x))*smoothstep(bay-57.,bay-50.,p.z);
+ beach=max(beach,sandCrescent);
  float wet=1.-smoothstep(-.2,1.8,p.y);
  float soil=smoothstep(.66,.86,macro)*(1.-rock)*(1.-beach);
  vec3 grass=mix(vec3(.19,.27,.105),vec3(.32,.39,.19),macro);

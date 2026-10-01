@@ -6,6 +6,7 @@ import { CITY,weatherAt,type Weather } from "@/lib/world/city-plan";
 import { cityAsset } from "@/lib/world/assets";
 const survey = {width:CITY.width,depth:CITY.depth,centerZ:0};
 import spec from '@/lib/world/landmark-spec.json';
+import {nightField} from '@/lib/world/night-lighting';
 import {SUN_DIRECTION} from '@/lib/world/city-buildings';
 const sunlight=SUN_DIRECTION;
 
@@ -60,6 +61,7 @@ void main(){
  gl_Position=projectionMatrix*viewMatrix*p;
 }`;
 const fragmentShader = `
+uniform sampler2D nightMap;uniform float nightAmount;
 uniform float time; uniform vec3 deep,shallow,foam,sun,sky;uniform float daylight;uniform float storm;uniform vec4 observatory;
 varying vec3 waterPosition;
 ${depthCode}
@@ -82,6 +84,15 @@ void main(){
  vec3 toSphere=observatory.xyz-waterPosition;float alongRay=dot(toSphere,reflection);
  float miss=length(toSphere-reflection*alongRay);float reflectedSphere=(1.-smoothstep(observatory.w-3.,observatory.w+1.,miss))*step(0.,alongRay)*smoothstep(0.,.15,reflection.y);
  color=mix(color,vec3(.11,.18,.19),reflectedSphere*fresnel*.72);
+ // Bounded shore-light streaks sampled from the same irradiance atlas, broken by waves.
+ vec3 shoreGlow=vec3(0.);vec2 towardShore=normalize(reflection.xz+vec2(.0001));
+ for(int i=1;i<=6;i++){
+  float reach=float(i)*18.;vec2 q=p+towardShore*reach+vec2(s.x*18.,0.);
+  vec4 field=texture2D(nightMap,(q+2048.)/6144.);
+  shoreGlow+=(vec3(1.,.52,.22)*field.r+vec3(.45,.72,1.)*field.b)*exp(-reach/65.)/6.;
+ }
+ float ripple=smoothstep(.38,.85,noise2(p*vec2(.12,.8)+vec2(s.x*4.,time*.16)));
+ color+=shoreGlow*nightAmount*(1.-river)*ripple*.28;
  float bedDetail=(.5+.5*sin(p.x*.42+sin(p.y*.19)*2.))*exp(-depth*.65);
  color+=vec3(.035,.05,.027)*bedDetail*(1.-fresnel);
  vec3 sunRay=normalize(sun*200000.-waterPosition);
@@ -121,6 +132,7 @@ function WaterMaterial({
   const { invalidate } = useThree();
   const uniforms = useMemo(
     () => ({
+      nightMap:nightField.texture,nightAmount:nightField.amount,
       time: { value: 0 },
       depthMap: { value: depthMap ?? null },
       river: { value: river ? 1 : 0 },

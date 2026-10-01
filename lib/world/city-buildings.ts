@@ -11,7 +11,7 @@ export const projectBuildings = [
  {id:'field',name:'Field Operations',position:[264,47,-164],size:[52,85,56],projects:['field-operations']},
  {id:'studio',name:'Design Studio',position:[83,39,75],size:[50,31,40],projects:['creative-operations','member-mobile']},
  {id:'frontages',name:'Waterfront Arcade',position:[183,28,160],size:[250,18,70],projects:['digital-frontages','social-map']},
- {id:'research',name:'Coastal Observatory',position:spec.observatory.center as V3,size:[70,70,70],projects:['wonderhao-world']},
+ {id:'research',name:'The Sphere',position:spec.observatory.center as V3,size:[70,70,70],projects:['wonderhao-world']},
 ].map((building,index)=>{
  const position=building.position as V3,size=building.size as V3;
  const volumes=architecture.filter(p=>p[9]===index+1&&(p[0]===0||p[0]===4)&&p[5]>=8&&p[6]>=3&&p[7]>=8).map(p=>({position:[p[2],p[3]+(p[0]===4?p[6]/2:0),p[4]] as V3,size:[p[5],p[6],p[7]] as V3}));
