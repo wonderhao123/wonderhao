@@ -3,11 +3,22 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 /** Rain-tree crowns: layered, spreading lobes instead of a single geometric ball. */
 export function makeCanopy(simple=false){
  const pieces:THREE.BufferGeometry[]=[];
- for(let i=0;i<(simple?4:7);i++){
-  const a=i*2.4,g=new THREE.SphereGeometry(1,simple?6:9,simple?4:6);const p=g.attributes.position;
-  for(let k=0;k<p.count;k++){const x=p.getX(k),y=p.getY(k),z=p.getZ(k),r=1+.12*Math.sin(x*7+y*5+z*9+i);p.setXYZ(k,x*r,y*r,z*r)}
-  g.scale(i===0?.65:.54,i===0?.5:.34,i===0?.65:.54);
-  g.translate(i===0?0:Math.cos(a)*.56,i===0?.35:.08+Math.sin(i*3)*.16,i===0?0:Math.sin(a)*.56);pieces.push(g);
+ // Smaller overlapping leaf sprays break the old seven smooth, cushion-like lobes.
+ const count=simple?7:24;
+ for(let i=0;i<count;i++){
+  const angle=i*2.399963,spread=Math.sqrt((i+.5)/count),radius=(simple?.32:.23)+.12*(.5+.5*Math.sin(i*7.1));
+  const g=new THREE.SphereGeometry(1,simple?5:6,simple?3:4),p=g.attributes.position;
+  for(let k=0;k<p.count;k++){const x=p.getX(k),y=p.getY(k),z=p.getZ(k),r=1+.15*Math.sin(x*8+y*5+z*9+i);p.setXYZ(k,x*r,y*r,z*r);}
+  g.scale(radius*1.35,radius*.78,radius);g.rotateY(angle);
+  g.translate(Math.cos(angle)*spread*.76,.18+(1-spread)*.46+Math.sin(i*3.7)*.09,Math.sin(angle)*spread*.69);
+  const tint=.76+.24*(.5+.5*Math.sin(i*4.7)),colors=new Float32Array(p.count*3);
+  for(let k=0;k<p.count;k++){const light=tint*(.9+.1*(p.getY(k)+.5));colors.set([light*.91,light,light*.82],k*3);}
+  g.setAttribute('color',new THREE.BufferAttribute(colors,3));pieces.push(g);
+ }
+ for(let i=0;i<(simple?3:5);i++){
+  const a=i*2.4,start=new THREE.Vector3(0,-.38,0),end=new THREE.Vector3(Math.cos(a)*.48,.22,Math.sin(a)*.48),direction=end.clone().sub(start);
+  const limb=new THREE.CylinderGeometry(.018,.036,direction.length(),5,1);limb.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),direction.normalize()));limb.translate(...start.add(end).multiplyScalar(.5).toArray());
+  const colors=new Float32Array(limb.attributes.position.count*3);for(let k=0;k<colors.length;k+=3)colors.set([1.8,.62,.36],k);limb.setAttribute('color',new THREE.BufferAttribute(colors,3));pieces.push(limb);
  }
  const g=mergeGeometries(pieces);pieces.forEach(p=>p.dispose());g.computeVertexNormals();return g;
 }

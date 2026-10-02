@@ -1,3 +1,4 @@
+<!-- Temporary screenshots and measurement dumps were removed on 2026-10-02; the results below record completed verification. -->
 # 城市重建验收记录 · 2026-10-01
 
 基线：`main / 112233c8fe8f5e846e8d9763e16cc3006340f065`，开工时已核对远端同一提交；原有未跟踪文件只有任务规格。本轮修改保留在工作区，未提交、推送或部署。预览为本机生产构建 `http://127.0.0.1:3002`。
@@ -18,13 +19,13 @@
 
 | 项目 | 已取得的证据 |
 |---|---|
-| 城市 | [白昼总览](docs/city-rebuild/city-day.jpg)、[地平线](docs/city-rebuild/horizon.jpg)，无项目标签；独立计数及范围见上文 |
-| 地形道路 | [河谷](docs/city-rebuild/river.jpg)、[桥头](docs/city-rebuild/bridge.jpg)、[机场通道](docs/city-rebuild/airport-corridor.jpg)、山路近景；连通、坡度、桥梁净空、地基、船体/航线回归检查 |
-| 建筑装配 | 店屋[正面](docs/city-rebuild/shop-front.jpg)/[背面](docs/city-rebuild/shop-back.jpg)、教堂[正面](docs/city-rebuild/church-front.jpg)/[背面](docs/city-rebuild/church-back.jpg)、[裙房](docs/city-rebuild/tower-podium.jpg)、[Ring](docs/city-rebuild/ring.jpg)、[完整球体](docs/city-rebuild/sphere.jpg)、[塔](docs/city-rebuild/forest-tower.jpg)、[基地](docs/city-rebuild/field-base.jpg) |
-| 夜景 | 相同镜头的[总览](docs/city-rebuild/city-day-night.jpg)、[街道](docs/city-rebuild/shop-front-night.jpg)、[滨水](docs/city-rebuild/sphere-night.jpg)、[塔](docs/city-rebuild/forest-tower-night.jpg)、[基地](docs/city-rebuild/field-base-night.jpg) |
-| 聚焦 | 实际mouse hover → 可交互卡片 → 真实项目；拖动不打开详情；目录13项，键盘Locate/Enter，Esc和焦点恢复，浏览器前进/后退；CDP真实触摸事件验证[首触聚焦](docs/city-rebuild/mobile-focus.jpg)、卡片进入、空白取消 |
-| 揭幕 | 独立浏览器HTTP冷进入[遮罩](docs/city-rebuild/arrival-0.jpg)与[完整画面](docs/city-rebuild/arrival-2.jpg)连续帧；暖进入、250ms延迟/256KiB/s慢网、必需water.bin 503后Retry、轻量模式和项目/室内深链接 |
-| 保留体验 | 原有13项目与slug未修改；19个静态页面构建；World Pass存储/印章/装备回归；[B1](docs/city-rebuild/b1.jpg)→[B2](docs/city-rebuild/b2.jpg)、收集装备→[海底](docs/city-rebuild/underwater.jpg)→岸上、项目深链接关闭均经浏览器实际操作；机场、客运港及工业港在12×观察下实际推进；飞机完整阶段、船舶泊位与船体净空、两条公交路线测试 |
+| 城市 | 白昼总览、地平线，无项目标签；独立计数及范围见上文 |
+| 地形道路 | 河谷、桥头、机场通道、山路近景；连通、坡度、桥梁净空、地基、船体/航线回归检查 |
+| 建筑装配 | 店屋正面/背面、教堂正面/背面、裙房、Ring、完整球体、塔、基地 |
+| 夜景 | 相同镜头的总览、街道、滨水、塔、基地 |
+| 聚焦 | 实际mouse hover → 可交互卡片 → 真实项目；拖动不打开详情；目录13项，键盘Locate/Enter，Esc和焦点恢复，浏览器前进/后退；CDP真实触摸事件验证首触聚焦、卡片进入、空白取消 |
+| 揭幕 | 独立浏览器HTTP冷进入遮罩与完整画面连续帧；暖进入、250ms延迟/256KiB/s慢网、必需water.bin 503后Retry、轻量模式和项目/室内深链接 |
+| 保留体验 | 原有13项目与slug未修改；19个静态页面构建；World Pass存储/印章/装备回归；B1→B2、收集装备→海底→岸上、项目深链接关闭均经浏览器实际操作；机场、客运港及工业港在12×观察下实际推进；飞机完整阶段、船舶泊位与船体净空、两条公交路线测试 |
 | 工程检查 | `npm test` **32/32**；`npm run typecheck`、`npm run lint`、`npm run build:static -- --webpack`全部通过；`git diff --check`通过 |
 
 固定镜头采用现有历史相机恢复接口，不移动建筑或隐藏缺陷。主要总览 position `[1240,1100,1400]`、target `[-60,60,-310]`；地平线 `[1300,240,1580]` / `[-50,120,-400]`；观景塔 `[-941,180,-607]` / `[-1060,144,-720]`；基地 `[711,251,-970]` / `[600,195,-1100]`。
@@ -81,10 +82,10 @@
 
 | 验收项 | 本次证据 |
 |---|---|
-| 机场夜间辨识 | [跑道与停机坪](docs/coastal-rebuild/airport-night.jpg)、[塔台近景](docs/coastal-rebuild/airport-tower-night.jpg) |
-| 沙滩与休闲设施 | [白昼海湾](docs/coastal-rebuild/bay-day.jpg)、[沙滩近景](docs/coastal-rebuild/beach-close.jpg)、[夜间海湾](docs/coastal-rebuild/bay-night.jpg) |
-| 工业/休闲港分区 | [货港夜景](docs/coastal-rebuild/cargo-night.jpg)、[客运与小艇泊位](docs/coastal-rebuild/marina-night.jpg) |
-| 远景与轻量渲染 | [整岛夜景](docs/coastal-rebuild/whole-island-night.jpg)、[390px 低画质跑道](docs/coastal-rebuild/airport-mobile-low.jpg)、[390px 海湾](docs/coastal-rebuild/bay-mobile-low.jpg) |
+| 机场夜间辨识 | 跑道与停机坪、塔台近景 |
+| 沙滩与休闲设施 | 白昼海湾、沙滩近景、夜间海湾 |
+| 工业/休闲港分区 | 货港夜景、客运与小艇泊位 |
+| 远景与轻量渲染 | 整岛夜景、390px 低画质跑道、390px 海湾 |
 | 地形/航线回归 | 36/36 测试通过；新增沙滩干湿剖面、步道支撑、灯光标高与用途、游艇/货船占用范围检查；原有全船体/全航程与飞机跑道互斥检查通过 |
 | 交互 | 桌面与390×844低画质视口实际操作目录→潜水区→领取装备→进入水下；正确到达 `?place=dive&scene=reef&view=underwater`；无横向溢出 |
 | 工程与运行 | TypeScript、相关源文件 ESLint、webpack 生产构建、`git diff --check` 通过；桌面/低画质浏览器脚本与 WebGL 错误为0；设计静态审计0问题 |
@@ -105,9 +106,8 @@
 
 玻璃是唯一透明材质批次：关闭深度写入与投影，独立 shader key，采用外表面渲染；上部玻璃提高反射透明度，首层保持清晰透视。夜间室内暖光、水平灯带随昼夜模式切换；固定实时灯位保持，无镜头驱动的光源跳变。
 
-- 实景：[白昼](docs/glass-pavilion/day.jpg)、[夜景](docs/glass-pavilion/night.jpg)、[俯视](docs/glass-pavilion/roof.jpg)、[背面白昼](docs/glass-pavilion/rear-day.jpg)/[夜景](docs/glass-pavilion/rear-night.jpg)、[390px 轻量模式](docs/glass-pavilion/mobile-low.jpg)。
 - 37 项测试通过；新增标准/轻量模型玻璃透明度、完整球冠、遮阳环、15 圈灯带全周连续性与室内设施检查。完整球体径向法线、深水净空等旧约束继续通过。材质预算测试只为球体玻璃放行一个 BLEND 材质，其他模型仍要求不透明。
-- TypeScript、相关 ESLint、webpack 生产构建与 `git diff --check` 通过。桌面和390×844浏览器视口未出现脚本/WebGL错误；潜水装备→[水下](docs/glass-pavilion/underwater.jpg)→返回岸上实际操作通过，无横向溢出。低画质为桌面模拟，非手机真机。
+- TypeScript、相关 ESLint、webpack 生产构建与 `git diff --check` 通过。桌面和390×844浏览器视口未出现脚本/WebGL错误；潜水装备→水下→返回岸上实际操作通过，无横向溢出。低画质为桌面模拟，非手机真机。
 - 拖动灯光回归再次通过：11 个往返镜头、真实鼠标拖动及昼夜开关后，两盏灯的位置/强度仍固定。
 - 标准 GLB 7.39 MiB、轻量 GLB 约2.8 MiB，各10个材质批次；没有外部纹理、第三方模型或新增运行依赖。玻璃反射使用现有环境照明，不冒称城市屏幕空间反射。未提交、推送或部署。
 
@@ -115,8 +115,28 @@
 
 Replaced the former church and plain apron with a full garden precinct within the existing city block. Includes a Gothic nave, side aisles, coloured lancets, connected flying buttresses, belfry/spire, two-storey open pointed cloisters, classical garden house with rounded bay, central lawn, dining furniture, shade parasols, boundary gates and warm fixed night illumination. Existing neighbouring temple, library, roads and project identities are preserved. This is an adapted composition, not a surveyed replica or a new indoor tour.
 
-Reference research and design decisions: [CHIJMES analysis](docs/chijmes-quarter/design.md). Visual evidence: [day](docs/chijmes-quarter/day.jpg), [night](docs/chijmes-quarter/night.jpg), [roof](docs/chijmes-quarter/roof.jpg), [front](docs/chijmes-quarter/front.jpg), [rear](docs/chijmes-quarter/rear.jpg), [dragged night view](docs/chijmes-quarter/drag-night.jpg), [390px lightweight view](docs/chijmes-quarter/mobile-low.jpg).
+Reference research and design decisions: [CHIJMES analysis](docs/chijmes-quarter/design.md). Visual evidence: day, night, roof, front, rear, dragged night view, 390px lightweight view.
 
-Validation: 39/39 tests; `npm run typecheck`; targeted ESLint; `next build --webpack`; `git diff --check`. New assertions cover open arcade geometry, solid jambs, clear lawn/entrances, scenery ownership, retained distant structure and rotated roof support. Browser production verification returned no page/console errors and no horizontal overflow. The pre-existing Three.js Clock deprecation warning remains. Near-quarter standard render sample: 343 draw calls / 980,084 triangles for the complete visible scene; no FPS claim. Corrected camera bounds for rotated wings and included narrow building volumes/spires. Test helper: `tests/browser/heritage-quarter.js`.
+Validation: 39/39 tests; `npm run typecheck`; targeted ESLint; `next build --webpack`; `git diff --check`. New assertions cover open arcade geometry, solid jambs, clear lawn/entrances, scenery ownership, retained distant structure and rotated roof support. Browser production verification returned no page/console errors and no horizontal overflow. The pre-existing Three.js Clock deprecation warning remains. Near-quarter standard render sample: 343 draw calls / 980,084 triangles for the complete visible scene; no FPS claim. Corrected camera bounds for rotated wings and included narrow building volumes/spires. Temporary screenshot helper removed after verification.
 
 No dependency added, no remote asset copied, no deployment performed.
+
+## Shared building, landscape and transport detail — 2026-10-02
+
+- Ordinary thin-glass facades: physical aluminium reveals, shared multi-storey mullions and projecting sills; glass roughness now applies consistently to all seven glazing colours, including rain. Original building owners, layout, camera collision solids, roads and transport state machines remain unchanged.
+- Ground: grass patch/blade detail, soil/rock transitions, dry/wet sand and filtered sand ripples; surveyed terrain geometry unchanged. Trees: layered tinted crowns and branches with a simpler distant variant. Sea: irregular foam fronts along existing bathymetry.
+- Transport: rebuilt car/bus bodies and fittings, smooth aircraft profile/open engine mouths/winglets/gear, cruise/ferry/cargo deck fittings and railings. Original vessel hull and transport routes retained. Body/deck geometry is merged by finish, at most eight material batches; wheels remain independently animated.
+
+
+Validation: 43/43 tests; TypeScript; targeted ESLint; `next build --webpack`; `git diff --check`. Tests check finite transport geometry/normals, clearance envelopes, material batch limits, deterministic tinted crowns, simpler canopy geometry and facade ownership/shared-storey budget. The completed browser acceptance run checked standard daylight, night, rain and mobile lightweight rendering, zoom/drag and overflow. Production browser run: no script/WebGL errors or new warnings; no mobile horizontal overflow. Existing dependency `THREE.Clock` deprecation remains; full-repository ESLint has two pre-existing unused-import warnings in WorldPass.
+
+Same-camera full-scene samples, 1440×960, reduced motion (snapshots, not a frame-rate benchmark):
+
+| View | Before calls / triangles | After calls / triangles |
+| --- | --- | --- |
+| City | 241 / 1,111,766 | 242 / 1,347,734 |
+| Street | 298 / 980,324 | 328 / 1,232,960 |
+| Airport | 257 / 974,372 | 226 / 1,201,608 |
+| Harbour | 398 / 1,153,308 | 374 / 1,424,882 |
+
+More detail raises triangle cost about 21–26% in these views. Airport/harbour draw calls decrease through material batching. The mobile lightweight sample rendered 132 calls / 981,158 triangles; this is a desktop browser viewport, not physical-phone performance certification. Initial terrain shader reserved-word failure was repaired and the browser matrix rerun successfully; redundant per-pane frames were replaced with shared mullions before final verification. No deployment performed.

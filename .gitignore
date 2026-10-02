@@ -42,6 +42,6 @@ next-env.d.ts
 /playwright-report/
 /test-results/
 
-# Local browser acceptance traces; selected evidence is kept in docs/city-rebuild.
+# Temporary browser screenshots and acceptance traces
 /.playwright-cli/
 /output/playwright/

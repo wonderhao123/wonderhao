@@ -176,7 +176,7 @@ export function makeArchitecture():Part[]{
   box(m.paving,x,y+.2,z+sign*(d/2+4),w+3,.4,8);
   for(const a of [-1,1])box(m.glass,x+a*w/3,y+2,z+sign*(d/2+.65),7,3,.2);
  }
- return p;
+ return finishArchitecture(p);
 }
 
 /** CHIJMES-inspired precinct, adapted to the existing block rather than a measured replica.
@@ -298,4 +298,34 @@ export function makeHeritageQuarter():Part[]{
  for(const x of [-119,-99,-44]){box(lime,x,22.8,158,1.2,4.6,1.2);spire(x,158,25.7,1.8,1.2);}
  for(const [x,z] of [[-121,123],[-96,123],[-121,148],[-96,148],[-84,114],[-46,114],[-34,53],[-34,77],[-34,101],[-60,150]])bollard(x,z);
  return p;
+}
+
+/** Physical aluminium reveals and sills for the existing glazing, preserving each owner.
+ * Shared batches keep detail proportional to facade area rather than separate scene objects.
+ */
+export function finishArchitecture(parts:Part[]):Part[]{
+ const out=[...parts],glazing=new Set(['#36515e','#496574','#638c94','#70979a','#3f6b76','#386574','#71989d']);
+ const facades=new Map<string,{part:Part;thinX:boolean;bottom:number;top:number}>();
+ const frame=(p:Part,thinX:boolean,u:number,y:number,w:number,h:number,d:number,c='#87969a')=>{
+  const x=thinX?0:u,z=thinX?u:0;
+  out.push([0,c,p[2]+x*Math.cos(p[8])+z*Math.sin(p[8]),y,p[4]-x*Math.sin(p[8])+z*Math.cos(p[8]),w,h,d,p[8]+(thinX?Math.PI/2:0),p[9]]);
+ };
+ for(const p of parts){
+  if(p[0]!==0||!glazing.has(p[1])||p[6]<1.4)continue;
+  const thinX=p[5]<.8&&p[7]>=1.5,thinZ=p[7]<.8&&p[5]>=1.5;if(!thinX&&!thinZ)continue;
+  const width=thinX?p[7]:p[5],depth=(thinX?p[5]:p[7])+.38,bottom=p[3]-p[6]/2,top=p[3]+p[6]/2;
+  frame(p,thinX,0,bottom-.12,width+.3,.16,depth+.18,'#b9bcb3');
+  const key=[p[2],p[4],p[5],p[7],p[8],p[9]].join(':');
+  const facade=facades.get(key);
+  if(facade){facade.bottom=Math.min(facade.bottom,bottom);facade.top=Math.max(facade.top,top)}
+  else facades.set(key,{part:p,thinX,bottom,top});
+ }
+ // Continuous mullions span aligned storeys, instead of duplicating tiny boxes per pane.
+ for(const {part:p,thinX,bottom,top} of facades.values()){
+  const width=thinX?p[7]:p[5],depth=(thinX?p[5]:p[7])+.38;
+  for(const side of [-1,1])frame(p,thinX,side*(width/2+.05),(top+bottom)/2,.12,top-bottom+.2,depth);
+  for(let u=-width/2+3.4;u<width/2-.5;u+=3.4)frame(p,thinX,u,(top+bottom)/2,.075,top-bottom,depth*.85);
+  frame(p,thinX,0,top+.06,width+.22,.12,depth);
+ }
+ return out;
 }

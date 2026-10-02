@@ -169,3 +169,11 @@ Actual interior geometry includes a ground floor, two annular galleries around a
 ## CHIJMES-inspired heritage quarter — October 1
 
 The former freestanding church plot is a coherent garden precinct: a white Gothic chapel to the west, two-storey open pointed cloisters to the north/east, a lower classical garden house to the south, and a central lawn with dining terraces. Slate spires, terracotta wing roofs, warm ivory plaster and restrained coloured lancets give each building an identity. Real arcade openings, connected flying buttresses, supported eaves and low perimeter gates must remain legible in every quality mode. Keep public entrances clear and the lawn open. Night lighting uses fixed warm facade/path light and continuous coloured window panes, not office-style random window patterns. This is a site-adapted reference design, not a surveyed CHIJMES replica. See [reference analysis](docs/chijmes-quarter/design.md).
+
+## Shared city, landscape and transport detail — October 2
+
+Extend the landmark material language through existing city geometry. Thin glazing receives projecting sills, aluminium reveals and continuous vertical mullions shared across aligned storeys. Glass uses a consistent roughness/environment response and a small view-dependent room-depth approximation; this does not create navigable interiors or reflections of actual neighbouring buildings. Structural silhouettes, owners, parcels and routes remain canonical.
+
+Terrain combines metre-scale grass variation, derivative-filtered blade/ripple detail, warm dry sand and darker wet sand. Rock/soil/slope masks and the surveyed shoreline remain intact. Tree crowns use tinted overlapping leaf sprays with supporting branches, retaining a cheaper distant crown. Broken foam fronts follow the existing shallow-water field.
+
+Cars and buses have rounded bodies, framed cabins, mirrors, lamps, grilles and rotating wheel hubs. Aircraft use a lathed fuselage, swept wings, winglets, open engine lips/fans and gear. Ships retain the authored hull with batched deck windows, railings, portholes, lifeboats and equipment. Procedural source lives in `lib/world/transport-geometry.ts`; fittings merge into at most eight material meshes per body/deck, with separately animated wheels. No new runtime dependencies or external assets.

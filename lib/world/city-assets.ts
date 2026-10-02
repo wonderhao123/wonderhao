@@ -1,4 +1,4 @@
-import {makeArchitecture} from './city-architecture';
+import {makeArchitecture,finishArchitecture} from './city-architecture';
 import { sites, mountainSites, terrainHeight, channel, sampledRoads, hash, airport, segment, bayShore, coastalLights } from './city-plan';
 export type Part=[shape:number,color:string,x:number,y:number,z:number,sx:number,sy:number,sz:number,ry:number,owner?:number];
 export type Region='town'|'commons'|'airport'|'arrival'|'works'|'dive'|'archive'|'station'|'nature';
@@ -155,5 +155,5 @@ export function makeRegion(region:Region):Part[]{
   }
 
  }
- return parts;
+ return finishArchitecture(parts);
 }

@@ -101,7 +101,9 @@ void main(){
  color+=vec3(1.,.88,.65)*daylight*mix(1.,.3,river)*(pow(highlight,100.)*.45+pow(highlight,18.)*.025);
  float phase=fract(depth*.38-time*.16+swell(p,time)*.12);
  float breaker=(1.-smoothstep(.025,.105,phase))*smoothstep(0.,.25,depth)*(1.-smoothstep(1.8,4.2,depth));
- float flecks=.5+.5*sin(p.x*2.3+sin(p.y*1.8))*sin(p.y*3.1-time*.9);
+ float flecks=smoothstep(.25,.75,noise2(p*.75+vec2(time*.12,-time*.2)));
+ float brokenFront=smoothstep(.22,.62,noise2(p*.11+vec2(0.,time*.05)));
+ breaker*=.25+.75*brokenFront;
  float waterlineRadius=sqrt(observatory.w*observatory.w-observatory.y*observatory.y);
  float sphereDistance=length(p-observatory.xz);
  if(sphereDistance<waterlineRadius-.1)discard;
