@@ -104,12 +104,22 @@ export function WorldPass({
     }
     const reduced = !!surface?.closest('[data-reduced-motion="true"]') ||
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const play = async (element: HTMLElement, frames: Keyframe[], duration: number) => {
-      const animation = element.animate(frames, { duration, fill: "forwards", easing: "ease-in-out" });
+    const play = async (element: HTMLElement, frames: Keyframe[], duration: number, iterations = 1) => {
+      const animation = element.animate(frames, { duration, iterations, fill: "forwards", easing: "ease-in-out" });
       animations.current.push(animation);
       await animation.finished;
     };
     try {
+      const led = surface.querySelector<HTMLElement>(".pass-front .pass-status-dot");
+      if (led && !reduced) {
+        await play(led, [
+          { opacity: 0.15, offset: 0 },
+          { opacity: 1, offset: 0.2 },
+          { opacity: 1, offset: 0.45 },
+          { opacity: 0.15, offset: 0.7 },
+          { opacity: 0.15, offset: 1 },
+        ], 400, 3);
+      }
       await lanyard.controller.current?.depart();
       await play(arrival, [{ opacity: 1 }, { opacity: 0 }], reduced ? 150 : 350);
       onEnter?.();
