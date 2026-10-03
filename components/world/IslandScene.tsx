@@ -23,6 +23,7 @@ import {MountainPlaces} from './MountainPlaces';
 import {CityNight} from './CityNight';
 import {BuildingFocus} from './BuildingFocus';
 import {ScenePreparation} from './ScenePreparation';
+import {TheCube} from './TheCube';
 import {surfaceResources} from '@/lib/world/scene-readiness';
 import {Crane,Optical} from './WorldDevices';
 export type CameraSnapshot={version:3;position:[number,number,number];target:[number,number,number];zoom:number;view:string};
@@ -62,8 +63,9 @@ function World({p}:{p:SceneProps}){
   if(region!==closest)setRegion(closest);
  });
  return <>
- <CameraRig p={p}/><CityReflections dusk={p.dusk}/><ContextListener onFailure={p.onFailure}/><CoastalEnvironment clock={clock} dusk={p.dusk} low={p.low} underwater={p.underwater} weather={p.weather??'sunny'}/>
- {p.underwater?<><group position={relocation.dive}><Underwater clock={clock} low={p.low} onStatus={status}/></group><ResearchFacility low={p.low} dusk={p.dusk} onStatus={status}/></>:<>
+ <CameraRig p={p}/><CityReflections dusk={p.dusk}/><ContextListener onFailure={p.onFailure}/><CoastalEnvironment clock={clock} dusk={p.dusk} low={p.low} underwater={p.underwater} trench={p.underwater&&p.scene==='cube'} sphere={p.underwater&&p.scene==='sphere'} weather={p.weather??'sunny'}/>
+ {!p.level&&<TheCube dusk={p.dusk} low={p.low} underwater={p.underwater&&p.scene==='cube'}/>}
+ {p.underwater?<><group position={relocation.dive}><Underwater clock={clock} low={p.low} onStatus={status}/></group><ResearchFacility low={p.low} dusk={p.dusk} onStatus={status} underwater clock={clock}/></>:<>
  <MountainPlaces dusk={p.dusk}/><CityNight dusk={p.dusk}/><CityTerrain clock={clock} weather={p.weather} level={p.level??'exterior'} low={p.low} onStatus={status}/><RoadsAndRivers level={p.level}/><CoastalSite dusk={p.dusk}/>
  <CoastalWater onStatus={status} timeRef={clock} dusk={p.dusk} weather={p.weather} animate={!p.paused&&!p.reduced&&!p.low}/>
  {near.map(id=>id==='commons'&&p.level?null:<CityRegion key={id} detail={id==='nature'?!p.low:true} clock={clock} weather={p.weather} id={id} dusk={p.dusk} onStatus={status}/>)}

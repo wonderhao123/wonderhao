@@ -253,20 +253,18 @@ a svg {
   top: 15px;
 }
 
-.wordmark {
+.site-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  font-weight: 750;
-  letter-spacing: -0.7px;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.wordmark-symbol {
-  color: var(--accent);
-  font-size: 25px;
-  font-weight: 400;
+.site-logo {
+  display: block;
+  width: auto;
+  height: 40px;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
 }
 
 .live-dot {
@@ -481,6 +479,16 @@ a svg {
   letter-spacing: 1.2px;
   font-family: var(--font-geist-mono), monospace;
   min-width: 240px;
+}
+
+.world-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.world-brand .site-logo {
+  height: 24px;
 }
 
 .world-coordinates>span+span {
@@ -985,65 +993,87 @@ a svg {
   inset: 0;
 }
 
-.foil-base {
-  background: linear-gradient(135deg, #1e3a8a66, #0f172a66, #0009);
-  mix-blend-mode: multiply;
+.pass-holo .foil-emblem {
+  inset: auto -22px 20px auto;
+  width: 190px;
+  height: 200px;
+  mask-image: var(--brand-mark);
+  mask-mode: alpha;
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  transform: rotate(-18deg);
+  isolation: isolate;
+  opacity: calc(0.55 + var(--foil-active, 0) * 0.3);
+  background-image:
+    repeating-linear-gradient(0deg, #ff8b8b 0%, #ffe793 7%, #a9f5b0 14%, #88ebf4 21%, #a5adff 28%, #e8adff 35%, #ff8b8b 42%),
+    repeating-linear-gradient(118deg, #10182b 0%, #a4b9c4 3.5%, #e5ecee 4.5%, #728697 5.5%, #10182b 12%),
+    radial-gradient(circle at var(--foil-hot-x, 50%) var(--foil-hot-y, 50%), #ffffff 0%, #676e85 45%, #171c2a 100%);
+  background-size: 350% 350%, 240% 240%, 100% 100%;
+  background-position: 0 var(--foil-y), var(--foil-x) var(--foil-y), center;
+  background-blend-mode: color, hard-light;
+  filter: brightness(0.8) contrast(1.35) saturate(0.75);
+  transition: opacity 220ms ease-out;
 }
 
-.pass-holo .foil-pattern {
-  inset: -30%;
-  background-image: var(--holo-pattern);
-  background-size: 80px 80px;
-  background-position: var(--edition-offset) 0;
-  transform: translate(calc((var(--foil-x) - 50%) * 0.15),
-      calc((var(--foil-y) - 50%) * 0.15)) rotate(-10deg);
-  opacity: 0.2;
-  mix-blend-mode: color-dodge;
+.foil-emblem::before,
+.foil-emblem::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.pass-holo .foil-pattern-secondary {
-  background-position: calc(40px + var(--edition-offset)) 40px;
-  opacity: 0.08;
-  mix-blend-mode: overlay;
-  transform: translate(calc((var(--foil-x) - 50%) * 0.3),
-      calc((var(--foil-y) - 50%) * 0.3)) rotate(-10deg);
-}
-
-.foil-spectrum {
-  background: linear-gradient(135deg,
-      transparent 0%,
-      #64c8ff4d 20%,
-      #ff64c84d 40%,
-      #64ffc84d 60%,
-      #ffc8644d 80%,
-      transparent 100%);
-  background-size: 300% 300%;
+.foil-emblem::before {
+  background: linear-gradient(135deg, #b9fff3, #9da9ff 23%, #ffc3f1 44%, #fff6b5 65%, #b9fff3);
+  background-size: 250% 250%;
   background-position: var(--foil-x) var(--foil-y);
-  mix-blend-mode: color-dodge;
-  opacity: 0.5;
-  filter: brightness(1.2) contrast(1.2);
-  transition: background-position 150ms ease-out;
+  mask-image: var(--foil-grain);
+  mask-size: 80px 80px;
+  mask-repeat: repeat;
+  mix-blend-mode: screen;
+  opacity: 0.8;
 }
 
-.pass-back .foil-spectrum {
-  opacity: 0.7;
-  filter: brightness(1.4) contrast(1.3);
+.foil-emblem::after {
+  background:
+    radial-gradient(ellipse at var(--foil-hot-x, 50%) var(--foil-hot-y, 50%), #ffffffd9 0%, #d5e4ff66 18%, transparent 55%),
+    repeating-linear-gradient(118deg, transparent 0 7px, #ffffff0d 8px, transparent 9px 15px);
+  mix-blend-mode: screen;
+  opacity: calc(0.12 + var(--foil-active, 0) * 0.55);
 }
 
-.foil-glare {
-  background: linear-gradient(45deg, transparent, #ffffff80, transparent);
-  opacity: var(--glare);
-  transform: translateX(calc(var(--foil-x) - 50%)) skewX(-20deg);
-}
-
-.foil-edge {
-  border: 1px solid #ffffff1a;
+.pass-face>.pass-flip-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 30px #64c8ff1a;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
 }
 
-.pass-back .foil-edge {
-  box-shadow: inset 0 0 40px #64c8ff33;
+.pass-flip-surface:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -5px;
+}
+
+.pass-face>:not(.pass-holo, .pass-flip-surface) {
+  pointer-events: none;
+}
+
+.pass-face :is(input, label, a, button:not(.pass-flip-surface)) {
+  pointer-events: auto;
+}
+
+.pass-flip-hint {
+  margin: 10px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .pass-front::after {
@@ -2865,14 +2895,8 @@ html {
     gap: 10px;
   }
 
-  .wordmark {
-    font-size: 13px;
-    letter-spacing: -0.5px;
-    gap: 5px;
-  }
-
-  .wordmark-symbol {
-    font-size: 21px;
+  .site-logo {
+    height: 32px;
   }
 
   .world-header nav {
@@ -4132,6 +4156,7 @@ html {
 :root [data-card-surface="pass"] {
   --card-material: linear-gradient(#000c, #000c);
   --card-radius: 16px;
+  background: var(--card-material) padding-box, linear-gradient(var(--card-edge), #ffffff10) border-box;
   box-shadow: 0 25px 50px -12px #00000080;
 }
 
@@ -4193,6 +4218,11 @@ html {
 
 :root [data-reduced-motion="true"] .pass-tilt {
   transform: none;
+}
+
+[data-reduced-motion="true"] .pass-inner,
+[data-reduced-motion="true"] .pass-holo>div {
+  transition: none;
 }
 
 @media (forced-colors: active) {
@@ -4502,7 +4532,7 @@ html {
 
 .arrival-layout .pass-tools {
   position: absolute;
-  top: 100%;
+  top: calc(100% + 25px);
   width: 100%;
   justify-content: center;
 }
@@ -4634,4 +4664,87 @@ html {
 .is-departing .pass-tools {
   opacity: 0;
   transition: opacity 150ms ease;
+}
+
+/* The HTML pass hangs from an elastic fabric strap, keeping its live controls. */
+.pass-suspension {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  margin-top: 74px;
+}
+
+.arrival-layout .pass-suspension {
+  margin-top: 26px;
+}
+
+.pass-lanyard {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.pass-strap-edge { stroke: #6a747d; stroke-width: 15; }
+.pass-strap-fabric { stroke: #151b22; stroke-width: 12; }
+.pass-strap-stitch { stroke: #74818d; stroke-width: 7; stroke-dasharray: 0.6 4; opacity: 0.48; }
+
+.pass-hanger {
+  position: relative;
+  transform-origin: 50% -26px;
+  will-change: transform;
+}
+
+.pass-suspension .pass-tilt { transform-origin: 50% 0; }
+
+.pass-suspension[data-first="true"]:not([data-ready]) .pass-hanger {
+  visibility: hidden;
+}
+
+.pass-clip {
+  position: absolute;
+  z-index: 3;
+  top: -36px;
+  left: calc(50% - 22px);
+  width: 44px;
+  height: 48px;
+  padding: 7px 13px;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+  cursor: grab;
+}
+
+.pass-clip>span {
+  display: block;
+  width: 18px;
+  height: 32px;
+  border: 3px solid #bac4c9;
+  border-radius: 6px 6px 8px 8px;
+  background: linear-gradient(90deg, #293139, #c3cdd2 20%, #535f67 37%, #252c33 64%, #c9d3d8 86%, #455058);
+  box-shadow: inset 0 0 0 2px #1a222a, 0 2px 5px #0008;
+}
+
+.pass-clip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+.pass-suspension .pass-flip-surface {
+  cursor: grab;
+  touch-action: none;
+}
+
+.pass-suspension[data-dragging] :is(.pass-clip, .pass-flip-surface) {
+  cursor: grabbing;
+}
+
+.is-departing .pass-flip-hint { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pass-inner, .pass-tilt { transition: none; }
+  .pass-tilt { transform: none; }
 }

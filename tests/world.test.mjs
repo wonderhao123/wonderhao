@@ -46,9 +46,29 @@ test("headquarters levels and underwater modes keep valid parentage", () => {
  assert.equal(resolveWorldRoute("?scene=reef&view=underwater").view,"underwater");
  assert.equal(resolveWorldRoute("?place=archive&view=underwater").view,undefined);
 });
+test('The Cube is discoverable above and below water without adding a portfolio project',()=>{
+ const surface=resolveWorldRoute('?scene=cube');
+ assert.equal(surface.place,'dive');assert.equal(surface.scene,'cube');assert.equal(surface.view,undefined);assert.equal(surface.unknown,false);
+ const underwater=resolveWorldRoute('?scene=cube&view=underwater');
+ assert.equal(underwater.view,'underwater');assert.equal(underwater.unknown,false);
+});
 const planUrl=url(compile("../lib/world/city-plan.ts"));
 const {bridges,sampledRoads,sites,streams,terrainHeight,airport,harbours,weatherAt}=await import(planUrl);
 const plan=await import(planUrl);
+test('The Cube is submerged, partly buried in its trench floor and embedded in the east wall',()=>{
+ const {cubeSite,cubeTrenchHeight}=plan,[x,y,z]=cubeSite.center,half=cubeSite.size/2;
+ assert.equal(cubeSite.size,56);
+ assert.ok(y+half<-5,'even the top face stays below waves');
+ const floor=terrainHeight(x-half,z),wall=terrainHeight(x+half,z);
+ assert.ok(floor>y-half&&floor<y,'lower cube must intersect the floor');
+ assert.ok(wall>y&&wall<y+half,'rock swallows the east face but leaves its top visible');
+ assert.ok(wall-floor>30,'the site must read as a trench wall, not a flat sea floor');
+ for(let dx=-110;dx<=110;dx+=10)for(let dz=-170;dz<=170;dz+=10){
+  assert.equal(terrainHeight(x+dx,z+dz),cubeTrenchHeight(x+dx,z+dz));
+  assert.ok(terrainHeight(x+dx,z+dz)<-10,'the entire trench stays underwater');
+ }
+ assert.ok(Math.hypot(x-plan.sites.dive[0],z-plan.sites.dive[2])>800,'separate offshore destination');
+});
 const {busState,busRoutes,aircraftState,vesselState,vesselSpecs}=await import(url(compile("../lib/world/city-life.ts").replace(/(["'])\.\/city-plan\1/g,JSON.stringify(planUrl))));
 test("authored road grades obey the town and mountain budgets",()=>{
  for(const r of sampledRoads)for(let i=1;i<r.points.length;i++){
@@ -232,4 +252,18 @@ test('pointed cloister arches have traversable openings and solid supporting jam
  assert.ok(cast(.45,-.2).length>0);
  assert.ok(cast(0,.45).length>0);
  g.dispose();material.dispose();
+});
+
+
+test('Sphere promenade piles reach the surveyed bed and underwater visit remains in the dive zone',()=>{
+ const {center,walkway:w}=landmarkSpec.observatory;
+ assert.equal(w.supportCount,8);
+ assert.ok(w.lightRadius>w.supportRadius+1.2&&w.lightRadius<w.outerRadius-.4,'searchlight lens must hang outside the support column and under the walkway');
+ for(let i=0;i<8;i++){
+  const a=i*Math.PI/4,x=center[0]+Math.cos(a)*w.supportRadius,z=center[2]+Math.sin(a)*w.supportRadius;
+  const bed=terrainHeight(x,z);
+  assert.ok(w.supportBottom<bed&&w.supportBottom+3>bed,'each pile penetrates its seabed without a floating foot');
+ }
+ const route=resolveWorldRoute('?scene=sphere&view=underwater');
+ assert.equal(route.place,'dive');assert.equal(route.scene,'sphere');assert.equal(route.view,'underwater');assert.equal(route.unknown,false);
 });

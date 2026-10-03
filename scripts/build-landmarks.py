@@ -60,10 +60,14 @@ ONLY = sys.argv[sys.argv.index('--only')+1] if '--only' in sys.argv else None
 
 def export(name):
     if ONLY and name != ONLY: return
-    for o in list(bpy.context.scene.objects):
-        if o.type in ('CURVE','MESH'):
-            bpy.ops.object.select_all(action='DESELECT');o.select_set(True);bpy.context.view_layer.objects.active=o
-            bpy.ops.object.convert(target='MESH')
+    # Convert the selected set together; per-object conversion rebuilds the entire
+    # dependency graph for every baluster in the multi-level interior.
+    convertible=[o for o in bpy.context.scene.objects if o.type=='CURVE' or (o.type=='MESH' and o.modifiers)]
+    if convertible:
+        bpy.ops.object.select_all(action='DESELECT')
+        for o in convertible:o.select_set(True)
+        bpy.context.view_layer.objects.active=convertible[0]
+        bpy.ops.object.convert(target='MESH')
     groups={}
     for o in bpy.context.scene.objects:
         if o.type=='MESH':groups.setdefault(o.data.materials[0].name,[]).append(o)
@@ -77,14 +81,13 @@ def export(name):
     print('ASSET',name,'material batches',len(groups),'bytes',(OUT/(name+'.glb')).stat().st_size)
     if name != 'ship-hull':
         for o in bpy.context.scene.objects:
-            if o.type=='MESH':
+            if o.type=='MESH' and o.data.materials[0].name!='Pavilion stair treads':
                 mod=o.modifiers.new('Lightweight geometry budget','DECIMATE');mod.ratio=.38
         bpy.ops.export_scene.gltf(filepath=str(OUT/(name+'-low.glb')),export_format='GLB',export_yup=True,export_apply=True,export_texcoords=True,export_normals=True)
 
 
 clear()
 shell=[material('Titanium '+str(i),c,.4,.5) for i,c in enumerate(['#465d61','#495f63','#475e62'])]
-wet=material('Immersed ceramic coating','#243e43',.27,.28)
 seam=material('Recessed joints','#182d34',.62,.25)
 glass=material('Observation glazing','#356875',.17,.58)
 bronze=material('Anodised bronze','#b49a73',.34,.7)
@@ -94,10 +97,7 @@ deck=material('Deck grating','#5b6968',.72,.45)
 
 R=SPEC['observatory']['radius']
 def spherepoint(r, lat, lon):return (r*math.cos(lat)*math.cos(lon),r*math.cos(lat)*math.sin(lon),r*math.sin(lat))
-# The complete pressure shell, including lower hemisphere, uses spherical patches.
-# Window patches replace shell patches; they are never flat rectangles floating above it.
-# Clear spherical pavilion above a sealed dark pressure hull. The underwater
-# hemisphere remains complete; only the exposed envelope becomes curtain wall.
+# One continuous glass sphere above and below water, with matching fine framing.
 pavilionglass=material('Pavilion clear glazing','#a7c2cf',.16,.32)
 glassnode=pavilionglass.node_tree.nodes.get('Principled BSDF')
 glassnode.inputs['Alpha'].default_value=.28
@@ -127,9 +127,9 @@ def pavilion_ring(name,radius,z,thickness,mat):
     obj.data.bevel_resolution=1
     return obj
 
-def gallery_floor(name,inner,outer,z,mat):
+def gallery_floor(name,inner,outer,z,mat,thickness=.32):
     vertices=[];faces=[];n=128
-    for radius,height in [(inner,z),(outer,z),(outer,z+.32),(inner,z+.32)]:
+    for radius,height in [(inner,z),(outer,z),(outer,z+thickness),(inner,z+thickness)]:
         for i in range(n):vertices.append((radius*math.cos(i*math.tau/n),radius*math.sin(i*math.tau/n),height))
     for j in range(4):
         for i in range(n):
@@ -138,12 +138,12 @@ def gallery_floor(name,inner,outer,z,mat):
     for polygon in obj.data.polygons:polygon.use_smooth=False
     return obj
 
-spherical_patch('Complete submerged pressure hull',-math.pi/2,math.asin(2/R),wet,rows=40)
+spherical_patch('Clear submerged glass envelope',-math.pi/2,math.asin(2/R),pavilionglass,rows=40)
 spherical_patch('Continuous clear glass envelope',math.asin(2/R),math.pi/2,pavilionglass,rows=44)
 # A low black waterline plinth and fine horizontal shading, never a stack of disks.
 for z in [-1.5,2.05]:pavilion_ring('Waterline and sill frame',math.sqrt(R*R-z*z)+.04,z,.10,seam)
-for i in range(15):
-    z=8.8+i*1.8
+for i in range(30):
+    z=(8.8+(i%15)*1.8)*(1 if i<15 else -1)
     lo=math.asin((z-.25)/R);hi=math.asin(min(R,z+.25)/R)
     spherical_patch('Curved silver shading belt',lo,hi,silver,R+.14,rows=2)
     radius=math.sqrt((R+.16)**2-z*z)
@@ -152,46 +152,70 @@ for i in range(15):
     pavilion_ring('Recessed continuous warm strip',math.sqrt((R+.18)**2-(z-.36)**2),z-.36,.07,linear)
 for k in range(24):
     a=k*math.tau/24
-    tube('Radial curtain wall mullion',[spherepoint(R+.045,math.asin(2/R)+(math.pi/2-math.asin(2/R))*j/64,a) for j in range(65)],.105,seam)
-# Open atrium and occupied galleries are real geometry visible through the glass.
-cylinder('Ground floor slab',(0,0,1.45),(0,0,1.82),34.3,interior,128)
-for z in [9.2,16.8]:
-    outer=math.sqrt(R*R-z*z)-.6
-    floor=gallery_floor('Atrium gallery',10,outer,z,interior)
-    cutter=box('Stair opening cutter',(17 if z<10 else -17,-6,z+.16),(14,4,.9),seam,0)
-    modifier=floor.modifiers.new('Open stairwell','BOOLEAN');modifier.operation='DIFFERENCE';modifier.object=cutter
-    bpy.context.view_layer.objects.active=floor;bpy.ops.object.modifier_apply(modifier=modifier.name)
-    bpy.data.objects.remove(cutter,do_unlink=True)
-    pavilion_ring('Atrium handrail',10.15,z+1.45,.05,seam)
-    for k in range(40):
-        a=k*math.tau/40;c=math.cos(a);t=math.sin(a)
-        cylinder('Atrium baluster',(10.15*c,10.15*t,z+.32),(10.15*c,10.15*t,z+1.45),.035,seam,8)
-    pavilion_ring('Gallery perimeter cove',outer-.3,z-.06,.065,linear)
-for k in range(12):
-    a=k*math.tau/12;c=math.cos(a);t=math.sin(a)
-    cylinder('Slender internal column',(22*c,22*t,1.82),(22*c,22*t,math.sqrt(R*R-22*22)),.22,silver,12)
-# Two flights climb opposite sides of the atrium; clear central space stays open.
-for level,z in enumerate([1.82,9.52]):
-    side=1 if level==0 else -1
-    for i in range(32):box('Gallery stair',(side*(11+i*.35),-6,z+i*.24),( .42,3.4,.28),interior,.02)
-    tube('Stair handrail',[(side*11,-7.8,z+1.1),(side*22,-7.8,z+8.55)],.055,seam)
-    for y in [-7.4,-4.6]:cylinder('Stair stringer',(side*11,y,z-.14),(side*21.85,y,z+7.3),.12,seam,8)
-for z,ringradius in [(1.82,27),(9.52,25),(17.12,22)]:
-    for i in range(12):
-        a=i*math.tau/12+.13;x=ringradius*math.cos(a);y=ringradius*math.sin(a)
-        # Leave the east entry free of furniture.
-        if z<2 and abs(y)<7 and x>0:continue
-        table=box('Gallery display table',(x,y,z+.95),(4.6,2, .22),wood,.12);table.rotation_euler.z=a
-        for dx in [-1.6,1.6]:
-            cylinder('Table trestle',(x+dx*math.cos(a),y+dx*math.sin(a),z),(x+dx*math.cos(a),y+dx*math.sin(a),z+.85),.12,seam,8)
-        box('Exhibit object',(x,y,z+1.25),(1.2,.7,.3),silver,.06)
-    for i in range(6):
-        a=i*math.tau/6+.5;x=(ringradius-6)*math.cos(a);y=(ringradius-6)*math.sin(a)
-        cylinder('Circular lounge seat',(x,y,z),(x,y,z+.48),1.15,wood,24)
-# Central information desk and entry stair up from the existing pier airlock.
-cylinder('Atrium information desk',(0,0,1.82),(0,0,2.9),3.1,wood,64)
-pavilion_ring('Desk task light',2.95,2.94,.045,linear)
-for i in range(8):box('Entry stair',(34.5-i*.55,0,.02+i*.225),( .6,3.5,.25),interior,.025)
+    tube('Radial curtain wall mullion',[spherepoint(R+.045,-math.pi/2+math.pi*j/128,a) for j in range(129)],.105,seam)
+# One open vertical room: narrow inhabited balconies, joined by a continuous stair.
+# Heights are walking surfaces in local coordinates (world waterline is -3m).
+levels=[17.12,9.52,1.82,-6.,-13.8,-21.6,-29.4,-32.]
+stairmat=material('Pavilion stair treads','#c8ac7e',.62,.12)
+def gallery_outer(z):return math.sqrt(R*R-max(abs(z),abs(z-.32))**2)-.7
+def gallery_inner(z):return gallery_outer(z)-4.8
+def landing_angle(z):return 1.1/(gallery_inner(z)-3.3)
+angles=[.35]
+for hi,lo in zip(levels,levels[1:]):
+    count=math.ceil((hi-lo)/.175)
+    # At least 30cm going on the narrow edge; generous clearance between turns.
+    angles.append(angles[-1]+landing_angle(hi)+count*.3/(min(gallery_inner(hi),gallery_inner(lo))-3.3)+landing_angle(lo))
+for j,z in enumerate(levels):
+    outer=gallery_outer(z);inner=gallery_inner(z);a=angles[j]
+    if j==len(levels)-1:cylinder('Bottom observation floor',(0,0,z-.32),(0,0,z),outer,interior,128)
+    else:gallery_floor('Open atrium balcony',inner,outer,z-.32,interior)
+    pavilion_ring('Balcony perimeter cove',outer-.2,z-.38,.055,linear)
+    # A radial landing connects each balcony to the stair, leaving the axis open.
+    gap=landing_angle(z)
+    vertices=[(r*math.cos(t),r*math.sin(t),h) for h in [z-.32,z] for r,t in [(inner-3.3,a-gap),(inner+.35,a-gap),(inner+.35,a+gap),(inner-3.3,a+gap)]]
+    landing=mesh('Open stair landing',vertices,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],stairmat)
+    for polygon in landing.data.polygons:polygon.use_smooth=False
+    # Only the well-facing edge is guarded; the balcony side remains an opening.
+    tube('Landing inner handrail',[((inner-3.23)*math.cos(a-gap+2*gap*i/12),(inner-3.23)*math.sin(a-gap+2*gap*i/12),z+1.1) for i in range(13)],.055,bronze)
+    if j<len(levels)-1:
+        gap=1.2/inner
+        for h in [.55,1.1]:
+            tube('Open balcony guardrail',[(inner*math.cos(a+gap+t*(math.tau-2*gap)/128),inner*math.sin(a+gap+t*(math.tau-2*gap)/128),z+h) for t in range(129)],.035 if h<1 else .055,seam)
+        for k in range(72):
+            theta=a+gap+k*(math.tau-2*gap)/71
+            cylinder('Balcony baluster',(inner*math.cos(theta),inner*math.sin(theta),z),(inner*math.cos(theta),inner*math.sin(theta),z+1.1),.035,seam,8)
+    # Small exhibits stay on the perimeter, never fill the shared central room.
+    for k in range(8):
+        theta=k*math.tau/8+.2
+        if abs(math.atan2(math.sin(theta-a),math.cos(theta-a)))<.25:continue
+        r=outer-2;x=r*math.cos(theta);y=r*math.sin(theta)
+        seat=box('Perimeter gallery bench',(x,y,z+.48),(2.6,.7,.18),wood,.06);seat.rotation_euler.z=theta+math.pi/2
+        for d in [-.85,.85]:cylinder('Bench leg',(x-d*math.sin(theta),y+d*math.cos(theta),z),(x-d*math.sin(theta),y+d*math.cos(theta),z+.4),.06,silver,8)
+# Faceted wedge treads meet edge-to-edge; rails and twin stringers follow every flight.
+for j,(hi,lo) in enumerate(zip(levels,levels[1:])):
+    n=math.ceil((hi-lo)/.175);start=angles[j]+landing_angle(hi);end=angles[j+1]-landing_angle(lo);rails=[[],[]];beams=[[],[]]
+    def stair_point(t,offset,height):
+        a=start+(end-start)*t;r=gallery_inner(hi)*(1-t)+gallery_inner(lo)*t-1.65+offset
+        return (r*math.cos(a),r*math.sin(a),height)
+    for i in range(n):
+        t=i/n;u=(i+1)/n;z=hi+(lo-hi)*u
+        vertices=[stair_point(t,-1.65,z-.18),stair_point(t,1.65,z-.18),stair_point(u,1.65,z-.18),stair_point(u,-1.65,z-.18),stair_point(t,-1.65,z),stair_point(t,1.65,z),stair_point(u,1.65,z),stair_point(u,-1.65,z)]
+        step=mesh('Continuous stair tread',vertices,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],stairmat)
+        for polygon in step.data.polygons:polygon.use_smooth=False
+    for i in range(n+1):
+        t=i/n;z=hi+(lo-hi)*t
+        for side,offset in enumerate([-1.58,1.58]):
+            rails[side].append(stair_point(t,offset,z+1.1));beams[side].append(stair_point(t,offset,z-.3))
+            if i%3==0:cylinder('Stair baluster',stair_point(t,offset,z),stair_point(t,offset,z+1.1),.035,seam,8)
+    for rail,beam in zip(rails,beams):
+        tube('Continuous stair handrail',rail,.055,bronze);tube('Continuous stair stringer',beam,.13,silver)
+# Light radial brackets carry balconies back to the structural shell ribs.
+for z in levels[:-1]:
+    for k in range(24):
+        a=k*math.tau/24;r=gallery_outer(z)
+        cylinder('Balcony shell bracket',((r-4.6)*math.cos(a),(r-4.6)*math.sin(a),z-.4),((math.sqrt(R*R-(z-1.2)**2)-.15)*math.cos(a),(math.sqrt(R*R-(z-1.2)**2)-.15)*math.sin(a),z-1.2),.10,silver,8)
+# Entry stair rises from the retained pier to the annular public floor.
+for i in range(9):box('Entry stair',(34.5-i*.48,0,-.18+i*.225),(.5,3.5,.25),interior,.025)
 # Fixed landing on east side with human-scale railing, airlock and boat fenders.
 box('Lateral landing',(40,0,-1),(17,15,1),concrete,.25)
 box('Deck surface',(40,0,-.43),(16.5,14.5,.15),deck)
@@ -200,7 +224,6 @@ box('Entry glazing',(37.25,0,2),( .08,2.5,3.6),pavilionglass,.02)
 box('Entry canopy',(37,0,4.8),(5,5,.25),bronze)
 for x in [34,47]:
     for y in [-6,6]:
-        cylinder('Landing pile',(x,y,-39),(x,y,-1),.65,concrete)
         cylinder('Guardrail post',(x,y,0),(x,y,1.2),.045,bronze)
 for y in [-7,7]:
     tube('Landing guardrail',[(32,y,1),(48,y,1)],.045,bronze)
@@ -209,10 +232,43 @@ for x in [33,47]:
     for y in [-7.2,7.2]:cylinder('Berthing fender',(x,y,-2),(x,y,0),.25,seam)
 for y in [-.6,.6]:cylinder('Service ladder',(48,y,-4),(48,y,1),.045,bronze)
 for z in range(-4,2):cylinder('Ladder rung',(48,-.6,z),(48,.6,z),.04,bronze)
-# Deep foundation below the complete sphere, on the surveyed excavated bed.
-cylinder('Gravity foundation',(0,0,-42),(0,0,-39),22,concrete,64)
-for x in [-12,12]:
-    for y in [-12,12]:cylinder('Bearing pier',(x,y,-40),(x,y,-28),2.3,concrete)
+# A thin inhabited ring carries the sphere on exactly eight seabed piles.
+walk=SPEC['observatory']['walkway'];cy=SPEC['observatory']['center'][1]
+z=walk['deckY']-cy;inner=walk['innerRadius'];outer=walk['outerRadius']
+gallery_floor('Continuous promenade structure',inner,outer,z-.4,silver)
+gallery_floor('Promenade walking surface',inner+.14,outer-.14,z-.08,wood,.08)
+for radius in [inner+.08,outer-.08]:
+    pavilion_ring('Bronze deck edge',radius,z+.04,.075,bronze)
+    pavilion_ring('Recessed promenade light',radius,z-.19,.06,linear)
+# Radial inlay joints articulate the broad deck; the east landing remains open.
+for i in range(128):
+    a=i*math.tau/128;c=math.cos(a);t=math.sin(a)
+    tube('Fine radial deck inlay',[((inner+.22)*c,(inner+.22)*t,z+.005),((outer-.22)*c,(outer-.22)*t,z+.005)],.018,bronze)
+for radius in [inner+.18,outer-.18]:
+    for h in [.51,1.16]:
+        tube('Open landing curved handrail',[(radius*math.cos(.19+i*(math.tau-.38)/192),radius*math.sin(.19+i*(math.tau-.38)/192),z+h) for i in range(193)],.05 if h>1 else .025,bronze)
+    for i in range(96):
+        a=i*math.tau/96
+        if min(a,math.tau-a)<.19:continue
+        c=math.cos(a);t=math.sin(a)
+        cylinder('Promenade stanchion',(radius*c,radius*t,z),(radius*c,radius*t,z+1.16),.035,silver,8)
+for i in range(walk['supportCount']):
+    a=i*math.tau/walk['supportCount'];c=math.cos(a);t=math.sin(a);r=walk['supportRadius'];bottom=walk['supportBottom']-cy
+    cylinder('Seabed support %02d'%i,(r*c,r*t,bottom),(r*c,r*t,z-.32),.82,concrete,24)
+    # Small pile shoe is buried in the surveyed bed, no gravity slab under the sphere.
+    cylinder('Pile shoe',(r*c,r*t,bottom),(r*c,r*t,bottom+1.4),1.5,concrete,24)
+    for end in [inner+.25,outer-.25]:
+        cylinder('Forked ring bearing',(r*c,r*t,z-3.2),(end*c,end*t,z-.38),.18,silver,12)
+    # Searchlight fixture and lens share the runtime light's surveyed axis.
+    lr=walk['lightRadius'];start=Vector((lr*c,lr*t,walk['lightY']-cy));direction=Vector(((walk['lightTargetRadius']-lr)*c,(walk['lightTargetRadius']-lr)*t,walk['lightTargetY']-walk['lightY'])).normalized()
+    cylinder('Searchlight suspension',(lr*c,lr*t,z-.4),start,.07,silver,12)
+    cylinder('Underdeck searchlight housing',start-direction*.35,start+direction*.42,.36,seam,24)
+    cylinder('Underdeck searchlight lens',start+direction*.43,start+direction*.46,.29,linear,24)
+    if i:
+        seat=box('Promenade bench',((outer-1)*c,(outer-1)*t,z+.53),(2.6,.65,.22),wood,.08);seat.rotation_euler.z=a+math.pi/2
+        for offset in [-.9,.9]:
+            x=(outer-1)*c-offset*t;y=(outer-1)*t+offset*c
+            cylinder('Bench leg',(x,y,z),(x,y,z+.44),.06,silver,8)
 pavilion_ring('Crown oculus frame',1.8,34.96,.08,silver)
 export('observatory')
 
@@ -309,38 +365,149 @@ for radius in [35,48]:
 ring_surface('Swept porcelain roof',list(reversed([(31.7,11.1),(31.85,11.6),(33,12.1),(36.5,12.35),(42.5,12.05),(46.7,11.3),(47.4,10.95),(47.35,10.55),(44.8,10.65),(33,10.9),(31.7,11.1)])),roof,True)
 for radius,z in [(31.73,11.45),(47.43,10.98)]:
     tube('Continuous violet roof edge',[(radius*math.cos(i*math.tau/256),radius*math.sin(i*math.tau/256),z) for i in range(257)],.14,neon)
-# Courtyard ground is complete at the centre, with a planted loop and axial pavilion.
-cylinder('Courtyard limestone',(0,0,.02),(0,0,.20),34.5,paving,192)
-cylinder('Courtyard meadow',(0,0,.21),(0,0,.31),30.6,lawn,192)
-annulus('Garden loop walk',23.2,24.7,.32,.08,paving)
-box('Axial garden walk',(0,0,.36),(7,64,.16),paving,.04)
-box('East west garden walk',(0,-9,.36),(57,2,.16),paving,.04)
-box('Garden pavilion plinth',(0,13,.65),(8.8,30,.5),paving)
-box('Garden pavilion glazing',(0,13,2.15),(7.2,28,2.5),ringglass,.02)
-box('Garden pavilion white canopy',(0,13,3.65),(9.4,30.8,.3),roof,.1)
-# Recessed rooflight keeps the pavilion a quiet linear element through the trees.
-box('Pavilion rooflight',(0,13,3.82),(5.8,27,.05),ringglass,.01)
-for y in range(-1,28,4):
-    for x in [-3.9,3.9]:cylinder('Pavilion arcade column',(x,y,.8),(x,y,3.52),.085,frame,8)
-for i in range(4):box('Pavilion arrival step',(0,-3.2-i*.6,.58-i*.09),(8.8,.65,.18),paving,.025)
-box('Linear reflecting pool',(0,-18,.5),(4.5,11,.14),paving)
-box('Still courtyard water',(0,-18,.58),(4.1,10.6,.03),water,.01)
-# Deterministic tree clusters leave the loop, cross path and central axis walkable.
-for i in range(104):
-    a=i*2.3999632297;r=6+math.sqrt((i+.5)/104)*23.4
-    x,y=r*math.cos(a),r*math.sin(a)
-    if abs(x)<6 or abs(y+9)<2.4 or 21.4<r<26.2:continue
-    h=3.5+(i*17%11)*.23
-    cylinder('Courtyard tree trunk',(x,y,.32),(x,y,h),.16,bark,8)
-    for k in range(3):
-        angle=k*math.tau/3+i
-        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=1,location=(x+math.cos(angle)*.7,y+math.sin(angle)*.7,h+.25+k*.28))
-        obj=bpy.context.object;obj.name='Courtyard clustered canopy';obj.scale=(1.65,1.65,1.2);obj.data.materials.append(foliage[i%2])
-        for polygon in obj.data.polygons:polygon.use_smooth=True
-for x in [-9,9]:
-    for y in [-9,8,20]:
-        box('Garden bench',(x,y,.85),(3,.65,.22),roof,.06)
-        for dx in [-1.1,1.1]:box('Bench support',(x+dx,y,.57),(.12,.5,.55),frame,.02)
+# A central armillary fountain replaces the axial pavilion. All dimensions are
+# local metres: keep the 34.5 m court, four open approaches and outer promenade.
+gold=material('Ring champagne bronze','#bfa477',.3,.72)
+energy=material('Ring aquamarine energy','#60ccce',.24,.25)
+pearl=material('Ring pearl light','#d4f6ee',.23,.1)
+for mat,colour,strength in [(energy,(.09,.65,.7,1),1.4),(pearl,(.53,1.,.88,1),3.2)]:
+    shader=mat.node_tree.nodes.get('Principled BSDF')
+    shader.inputs['Emission Color'].default_value=colour
+    shader.inputs['Emission Strength'].default_value=strength
+
+def court_sector(name,inner,outer,z,height,start,end,mat):
+    vertices=[];faces=[];n=max(8,round((end-start)*32))
+    for radius,h in [(inner,z),(outer,z),(outer,z+height),(inner,z+height)]:
+        for i in range(n+1):
+            a=start+(end-start)*i/n;vertices.append((radius*math.cos(a),radius*math.sin(a),h))
+    for j in range(4):
+        for i in range(n):
+            k=j*(n+1)+i;other=((j+1)%4)*(n+1)+i
+            faces.append((k,k+1,other+1,other))
+    faces.extend([(0,n+1,2*(n+1),3*(n+1)),(n,4*(n+1)-1,3*(n+1)-1,2*(n+1)-1)])
+    return mesh(name,vertices,faces,mat)
+
+def star_plinth(name,radius,z,top_radius,height,mat):
+    vertices=[];faces=[];n=16
+    for r,h in [(radius,z),(top_radius,z+height)]:
+        for i in range(n):
+            a=i*math.tau/n;rr=r*(1 if i%2==0 else .78)
+            vertices.append((rr*math.cos(a),rr*math.sin(a),h))
+    for i in range(n):faces.append((i,(i+1)%n,(i+1)%n+n,i+n))
+    faces.extend([tuple(reversed(range(n))),tuple(range(n,2*n))])
+    obj=mesh(name,vertices,faces,mat,.035)
+    for polygon in obj.data.polygons:polygon.use_smooth=False
+    return obj
+
+def orbit_point(radius,angle,tilt,turn,offset=0):
+    x=radius*math.cos(angle);y=radius*math.sin(angle)
+    yy=y*math.cos(tilt)-offset*math.sin(tilt)
+    return (x*math.cos(turn)-yy*math.sin(turn),x*math.sin(turn)+yy*math.cos(turn),9.4+y*math.sin(tilt)+offset*math.cos(tilt))
+
+def orbit_band(name,radius,width,tilt,turn,start=0,end=math.tau,mat=gold):
+    vertices=[];faces=[];n=max(24,round((end-start)*24))
+    for r,z in [(radius-width/2,-.10),(radius+width/2,-.10),(radius+width/2,.10),(radius-width/2,.10)]:
+        for i in range(n+1):vertices.append(orbit_point(r,start+(end-start)*i/n,tilt,turn,z))
+    for j in range(4):
+        for i in range(n):
+            k=j*(n+1)+i;other=((j+1)%4)*(n+1)+i
+            faces.append((k,k+1,other+1,other))
+    faces.extend([(0,n+1,2*(n+1),3*(n+1)),(n,4*(n+1)-1,3*(n+1)-1,2*(n+1)-1)])
+    return mesh(name,vertices,faces,mat)
+
+cylinder('Courtyard limestone',(0,0,.02),(0,0,.24),34.5,paving,192)
+# Flush paving inlays trace the astronomy of the sculpture without raised obstacles.
+for r in [11.3,16.8,20.4,30.4,33.3]:annulus('Concentric bronze paving inlay',r,r+.055,.245,.012,gold)
+for i in range(32):
+    a=i*math.tau/32;r=15
+    joint=box('Radial limestone joint',(r*math.cos(a),r*math.sin(a),.25),(7,.035,.015),frame,0)
+    joint.rotation_euler.z=a
+    a=i*math.tau/32;r=32
+    joint=box('Promenade paving joint',(r*math.cos(a),r*math.sin(a),.25),(3.3,.035,.015),frame,0)
+    joint.rotation_euler.z=a
+# Four crescent gardens frame a generous, uncluttered circular gathering space.
+for quadrant in range(4):
+    a=quadrant*math.pi/2;start=a+.19;end=a+math.pi/2-.19
+    court_sector('Crescent garden stone edge',21.1,29.6,.25,.35,start,end,paving)
+    court_sector('Crescent planting bed',21.45,29.25,.60,.035,start+.012,end-.012,lawn)
+    court_sector('Curved garden seat',20.8,21.7,.64,.20,start+.12,end-.12,roof)
+    court_sector('Recessed seat light',20.88,20.94,.58,.055,start+.12,end-.12,pearl)
+    # Low clipped planting at the court edge; taller trees stay behind the seats.
+    for j in range(11):
+        angle=start+.08+(end-start-.16)*j/10;r=23.2
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=1,location=(r*math.cos(angle),r*math.sin(angle),.88))
+        obj=bpy.context.object;obj.name='Low crescent planting';obj.scale=(.85,.85,.55);obj.data.materials.append(foliage[1])
+    for j in range(4):
+        angle=start+.16+(end-start-.32)*j/3;r=26.1+(j%2)*.65
+        x,y=r*math.cos(angle),r*math.sin(angle);h=4.2+(j%3)*.45
+        cylinder('Garden tree trunk',(x,y,.63),(x,y,h),.17,bark,8)
+        for k in range(3):
+            angle=k*math.tau/3+j
+            cylinder('Garden tree branch',(x,y,h-1.2),(x+math.cos(angle)*.85,y+math.sin(angle)*.85,h+.4),.075,bark,6)
+            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=1,location=(x+math.cos(angle)*.65,y+math.sin(angle)*.65,h+.3+k*.3))
+            obj=bpy.context.object;obj.name='Garden tree canopy';obj.scale=(1.65,1.65,1.35);obj.data.materials.append(foliage[j%2])
+            for polygon in obj.data.polygons:polygon.use_smooth=True
+    # Water rills sit on diagonals; the four axial approaches stay dry and clear.
+    angle=a+math.pi/4
+    for name,r,w,length,z,h,mat in [('Rill surround',14.1,1.3,7.2,.31,.12,roof),('Inset rill water',14.1,.92,6.9,.38,.035,water)]:
+        obj=box(name,(r*math.cos(angle),r*math.sin(angle),z),(length,w,h),mat,.025);obj.rotation_euler.z=angle
+
+# Shallow circular basin and a stepped, eight-point limestone / bronze pedestal.
+cylinder('Fountain apron',(0,0,.25),(0,0,.40),10.65,paving,128)
+annulus('Fountain ivory coping',9.8,10.25,.4,.32,roof)
+annulus('Fountain bronze lip',9.85,9.93,.71,.045,gold)
+cylinder('Fountain still water',(0,0,.41),(0,0,.54),9.8,water,128)
+star_plinth('Eight point lower bronze sill',7.25,.5,7.25,.22,gold)
+star_plinth('Splayed limestone pedestal',7.05,.72,5.3,1.7,roof)
+star_plinth('Upper bronze cornice',5.42,2.42,5.24,.25,gold)
+star_plinth('Inset pedestal water terrace',4.9,2.67,4.9,.055,water)
+star_plinth('Inner ivory tier',3.5,2.72,2.75,.85,roof)
+star_plinth('Inner bronze coping',2.89,3.57,2.7,.2,gold)
+for i in range(8):
+    a=i*math.tau/8
+    cylinder('Pedestal gold rib',(6.7*math.cos(a),6.7*math.sin(a),.86),(4.9*math.cos(a),4.9*math.sin(a),2.58),.11,gold,8)
+    # Faceted turquoise insets give the low stone base its own silhouette detail.
+    x,y=5.85*math.cos(a),5.85*math.sin(a)
+    bpy.ops.mesh.primitive_cone_add(vertices=4,radius1=.29,radius2=0,depth=.9,location=(x,y,1.1))
+    bpy.context.object.name='Pedestal aquamarine inlay';bpy.context.object.data.materials.append(energy)
+    # Small water arcs return into the basin, never into a pedestrian route.
+    angle=a+math.pi/8
+    points=[]
+    for k in range(25):
+        t=k/24;r=8.8-1.45*t
+        points.append((r*math.cos(angle),r*math.sin(angle),.55+3.8*t*(1-t)))
+    tube('Fountain water arc',points,.045,pearl)
+    tube('Basin ripple',[(7.35*math.cos(angle)+.32*math.cos(k*math.tau/40),7.35*math.sin(angle)+.32*math.sin(k*math.tau/40),.558) for k in range(41)],.012,energy)
+# Turned mechanical bearing and an open cradle physically support the armillary.
+ring_surface('Turned bronze bearing',[(0,3.76),(1.5,3.76),(1.65,4.0),(1.15,4.25),(.8,4.9),(1.45,5.05),(1.45,5.32),(.95,5.5),(0,5.5)],gold,True)
+for i in range(12):
+    a=i*math.tau/12
+    obj=box('Bearing gear tooth',(1.43*math.cos(a),1.43*math.sin(a),4.02),(.3,.26,.3),gold,.025);obj.rotation_euler.z=a
+for side in [-1,1]:
+    tube('Swept armillary cradle',[(side*.7,0,4.8),(side*1.2,0,5.8),(side*2.8,0,6.35),(side*3.8,0,7.15)],.16,gold)
+# Three tilted flat metal rings with fine aqua channels, plus the inner gimbal.
+for radius,width,tilt,turn in [(4.5,.34,math.radians(82),.2),(5.2,.32,math.radians(57),-.65),(6.35,.40,math.radians(24),.28),(2.25,.23,math.radians(73),-.4)]:
+    orbit_band('Armillary bronze orbit',radius,width,tilt,turn)
+    tube('Orbit aqua channel',[orbit_point(radius,math.tau*i/160,tilt,turn,.112) for i in range(161)],.027,energy)
+    for i in range(4):
+        a=i*math.pi/2
+        # Small spear-shaped radial ornaments on the ring, with an inset spine.
+        points=[orbit_point(r,angle,tilt,turn,.04) for r,angle in [(radius-.22,a-.05),(radius+.38,a-.055),(radius+.92,a),(radius+.38,a+.055),(radius-.22,a+.05)]]
+        obj=mesh('Orbit pointed fin',points,[(0,1,2,3,4)],gold)
+        solid=obj.modifiers.new('Fin thickness','SOLIDIFY');solid.thickness=.1
+        tube('Fin turquoise spine',[orbit_point(radius+.12,a,tilt,turn,.115),orbit_point(radius+.69,a,tilt,turn,.115)],.04,energy)
+# Broken luminous ribbons suggest circulating water while retaining clear gaps
+# through the sculpture. Opaque geometry avoids overlapping transparency passes.
+for phase in [0,math.pi]:
+    orbit_band('Suspended aquamarine ribbon',3.58,.62,1.2,.35,phase+.18,phase+2.7,energy)
+    tube('Water ribbon bright edge',[orbit_point(3.8,phase+.18+2.52*i/96,1.2,.35,.12) for i in range(97)],.035,pearl)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=40,ring_count=24,radius=1.28,location=(0,0,9.4))
+obj=bpy.context.object;obj.name='Luminous pearl nucleus';obj.data.materials.append(pearl)
+for polygon in obj.data.polygons:polygon.use_smooth=True
+for z,r in [(14.1,.6),(14.3,.85)]:annulus('Armillary crown collar',r*.55,r,z,.14,gold)
+for i in range(4):
+    a=i*math.pi/2
+    tube('Crown fleur',[(.68*math.cos(a),.68*math.sin(a),14.35),(.95*math.cos(a),.95*math.sin(a),14.75),(.38*math.cos(a),.38*math.sin(a),15.2),(0,0,15.65)],.09,gold)
 export('ring')
 
 fingerprint=hashlib.sha256(pathlib.Path(__file__).read_bytes()+(ROOT/'lib/world/landmark-spec.json').read_bytes()).hexdigest()[:12]

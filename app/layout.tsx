@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { assetPath } from "@/lib/world/assets";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { CardLighting } from "@/components/ui/CardLighting";
@@ -15,6 +16,9 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "WONDERHAO — An independent digital world",
+  icons: {
+    icon: [{ url: assetPath("/hao-logo.svg"), type: "image/svg+xml", sizes: "any" }],
+  },
   description:
     "An island of software, considered interfaces and playful experiments. Explore the world and work of Carl Chong.",
 };

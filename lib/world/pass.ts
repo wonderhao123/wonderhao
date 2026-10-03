@@ -118,36 +118,60 @@ export async function downloadPass(pass: WorldPass, patternUrl?: string) {
   c.fillStyle = "#0a0a0a";
   c.fillRect(40, 40, 920, 1370);
   if (patternUrl) {
-    const pattern = await new Promise<HTMLImageElement | null>((resolve) => {
+    const pattern = await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
       image.onload = () => resolve(image);
-      image.onerror = () => resolve(null);
+      image.onerror = () => reject(new Error("Pass logo could not load"));
       image.src = patternUrl;
     });
-    if (pattern) {
-      c.save();
-      c.beginPath();
-      c.rect(40, 40, 920, 1370);
-      c.clip();
-      c.translate(emblemSeed(pass) % 80, 0);
-      c.rotate(-Math.PI / 18);
-      c.globalAlpha = 0.16;
-      for (let x = -250; x < 1500; x += 250)
-        for (let y = -250; y < 1800; y += 250)
-          c.drawImage(pattern, x, y, 250, 250);
-      c.restore();
+    // Colour only the logo pixels, keeping the black card and logo cutouts clear.
+    const foilCanvas = document.createElement("canvas");
+    foilCanvas.width = canvas.width;
+    foilCanvas.height = canvas.height;
+    const foilContext = foilCanvas.getContext("2d");
+    if (!foilContext) throw new Error("Image creation unavailable");
+    foilContext.save();
+    foilContext.translate(820, 1100);
+    foilContext.rotate(-Math.PI / 10);
+    foilContext.drawImage(pattern, -295, -310, 590, 620);
+    foilContext.restore();
+    foilContext.globalCompositeOperation = "source-in";
+    const foil = foilContext.createLinearGradient(525, 790, 1115, 1410);
+    foil.addColorStop(0, "#64c8ff");
+    foil.addColorStop(0.25, "#c7a2ff");
+    foil.addColorStop(0.45, "#ff89c8");
+    foil.addColorStop(0.68, "#64ffc8");
+    foil.addColorStop(1, "#ffc864");
+    foilContext.fillStyle = foil;
+    foilContext.fillRect(0, 0, canvas.width, canvas.height);
+    // A fixed-angle souvenir of the same fine-grained foil used on the card.
+    foilContext.globalCompositeOperation = "source-atop";
+    let grainSeed = emblemSeed(pass);
+    for (let i = 0; i < 18000; i++) {
+      grainSeed = (Math.imul(grainSeed, 1664525) + 1013904223) >>> 0;
+      const x = 430 + (grainSeed % 720);
+      grainSeed = (Math.imul(grainSeed, 1664525) + 1013904223) >>> 0;
+      const y = 730 + (grainSeed % 720);
+      foilContext.fillStyle = `rgba(225, 239, 255, ${0.1 + (grainSeed % 40) / 100})`;
+      foilContext.fillRect(x, y, 1.5, 1.5);
     }
+    foilContext.strokeStyle = "#e5efff24";
+    foilContext.lineWidth = 2;
+    foilContext.beginPath();
+    for (let x = -500; x < 1500; x += 42) {
+      foilContext.moveTo(x, 730);
+      foilContext.lineTo(x + 900, 1450);
+    }
+    foilContext.stroke();
+    c.save();
+    c.beginPath();
+    c.rect(40, 40, 920, 1370);
+    c.clip();
+    c.globalAlpha = 0.3;
+    c.drawImage(foilCanvas, 0, 0);
+    c.restore();
   }
-  const foil = c.createLinearGradient(40, 40, 960, 1410);
-  foil.addColorStop(0, "#64c8ff14");
-  foil.addColorStop(0.4, "#ff64c814");
-  foil.addColorStop(0.7, "#64ffc814");
-  foil.addColorStop(1, "#ffc86414");
-  c.fillStyle = foil;
-  c.fillRect(40, 40, 920, 1370);
   c.fillStyle = "#ffffff";
-  c.font = "bold 36px sans-serif";
-  c.fillText("WONDERHAO", 90, 145);
   c.font = "bold 145px sans-serif";
   c.fillText("World", 85, 340);
   c.fillStyle = "#ffffff66";

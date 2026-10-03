@@ -6,6 +6,8 @@ import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+import { FXAAShader } from "three/addons/shaders/FXAAShader.js";
 
 /** Owns rendering, including demand-mode invalidation. Does not schedule frames. */
 export function SceneFinish({
@@ -31,7 +33,9 @@ export function SceneFinish({
   useEffect(() => {
     const target = new THREE.WebGLRenderTarget(1, 1, {
       type: THREE.HalfFloatType,
-      samples: 4,
+      // Multisample resolves intermittently lose color on the target GPU.
+      // Keep HDR/bloom single-sampled and anti-alias the completed image below.
+      samples: 0,
     });
     const composer = new EffectComposer(gl, target);
     composer.setPixelRatio(Math.min(gl.getPixelRatio(), degraded ? 1.25 : 1.5));
@@ -43,12 +47,17 @@ export function SceneFinish({
     composer.addPass(bloom);
     const output = new OutputPass();
     composer.addPass(output);
+    const antialias=new ShaderPass(FXAAShader);
+    const ratio=Math.min(gl.getPixelRatio(),degraded?1.25:1.5);
+    antialias.uniforms.resolution.value.set(1/(size.width*ratio),1/(size.height*ratio));
+    composer.addPass(antialias);
     pipeline.current = composer;
     invalidate();
     return () => {
       pipeline.current = null;
       render.dispose();
       output.dispose();
+      antialias.dispose();
       bloom.dispose();
       composer.dispose();
     };

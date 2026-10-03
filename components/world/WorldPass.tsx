@@ -4,16 +4,14 @@ import {
   ArrowUpRight,
   Download,
   RotateCw,
-  Check,
   ArrowRight,
 } from "lucide-react";
 import { places, profile } from "@/lib/world/content";
 import { assetPath } from "@/lib/world/assets";
+import { usePassLanyard } from "./usePassLanyard";
 import {
   cleanNickname,
   downloadPass,
-  emblemSeed,
-  issuedDate,
   passNumber,
   type WorldPass as Pass,
 } from "@/lib/world/pass";
@@ -38,12 +36,38 @@ export function WorldPass({
   const entering = useRef(false);
   const animations = useRef<Animation[]>([]);
   const card = useRef<HTMLDivElement>(null);
+  const lanyard = usePassLanyard(first);
+  const gesture = useRef<{ pointerId: number; x: number; y: number; time: number; dragging: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const flip = () => {
+    if (entering.current) return;
+    resetTilt();
+    setFlipped((value) => !value);
+  };
+  const flipFromSurface = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (suppressClick.current && event.detail !== 0) {
+      suppressClick.current = false;
+      return;
+    }
+    flip();
+    // Keep keyboard focus on the newly visible face, outside the inert face.
+    if (event.detail === 0) {
+      requestAnimationFrame(() => {
+        card.current?.querySelector<HTMLButtonElement>(
+          '.pass-face:not([inert]) .pass-flip-surface',
+        )?.focus();
+      });
+    }
+  };
   const resetTilt = () => {
     card.current?.style.setProperty("--tilt-x", "0deg");
     card.current?.style.setProperty("--tilt-y", "0deg");
     card.current?.style.setProperty("--foil-x", "50%");
     card.current?.style.setProperty("--foil-y", "50%");
     card.current?.style.setProperty("--glare", "0");
+    card.current?.style.setProperty("--foil-active", "0");
+    card.current?.style.setProperty("--foil-hot-x", "50%");
+    card.current?.style.setProperty("--foil-hot-y", "50%");
   };
   useEffect(
     () => () => {
@@ -51,14 +75,13 @@ export function WorldPass({
     },
     [],
   );
-  const seed = emblemSeed(pass);
   const download = async () => {
     setDownloading(true);
     setMessage("");
     try {
       await downloadPass(
         { ...pass, nickname: cleanNickname(nickname) },
-        assetPath("/card/holo-mark.svg"),
+        assetPath("/hao-logo.svg"),
       );
       setMessage("Your pass image is ready.");
     } catch {
@@ -74,9 +97,8 @@ export function WorldPass({
     setAdmitted(true);
     resetTilt();
     const surface = card.current;
-    const tilt = surface?.querySelector<HTMLElement>(".pass-tilt");
     const arrival = surface?.closest<HTMLElement>(".arrival-screen");
-    if (!tilt || !arrival) {
+    if (!surface || !arrival) {
       onEnter?.();
       return;
     }
@@ -88,13 +110,8 @@ export function WorldPass({
       await animation.finished;
     };
     try {
-      await play(tilt, reduced ? [{ opacity: 1 }, { opacity: 1 }] : [
-        { transform: "translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg)", offset: 0 },
-        { transform: "translate3d(0, 0, 0) rotateY(0deg) rotateZ(0deg)", offset: 0.12 },
-        { transform: "translate3d(0, -20px, 0) rotateY(720deg) rotateZ(0deg)", offset: 0.75 },
-        { transform: "translate3d(0, calc(-100vh - 480px), 0) rotateY(720deg) rotateZ(0deg) scale(0.85)", offset: 1 },
-      ], reduced ? 200 : 2800);
-      await play(arrival, [{ opacity: 1 }, { opacity: 0 }], reduced ? 150 : 500);
+      await lanyard.controller.current?.depart();
+      await play(arrival, [{ opacity: 1 }, { opacity: 0 }], reduced ? 150 : 350);
       onEnter?.();
     } catch (error) {
       // Unmount cancels the departure; do not enter after leaving this screen.
@@ -106,10 +123,27 @@ export function WorldPass({
   return (
     <div className={`pass-experience ${admitted ? "is-departing" : ""}`}>
       <div
-        ref={card}
+        ref={lanyard.stage}
         inert={admitted}
-        className={`pass-card ${flipped ? "is-flipped" : ""} ${admitted ? "is-admitted" : ""}`}
+        className="pass-suspension"
+        data-first={first}
+        onPointerDown={(event) => {
+          suppressClick.current = false;
+          const target = event.target as HTMLElement;
+          if (entering.current || !event.isPrimary || event.button !== 0 ||
+              target.closest('input, a, label, .pass-name-edit, button:not(.pass-flip-surface, .pass-clip)')) return;
+          gesture.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, time: performance.now(), dragging: false };
+          target.setPointerCapture(event.pointerId);
+        }}
         onPointerMove={(event) => {
+          const start = gesture.current;
+          if (start && start.pointerId === event.pointerId) {
+            if (!start.dragging && Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8) {
+              start.dragging = true;
+              lanyard.controller.current?.grab(start.x, start.y);
+            }
+            if (start.dragging) lanyard.controller.current?.move(event.clientX, event.clientY);
+          }
           if (
             admitted ||
             event.pointerType !== "mouse" ||
@@ -117,25 +151,65 @@ export function WorldPass({
             window.matchMedia("(prefers-reduced-motion: reduce)").matches
           )
             return;
-          const rect = event.currentTarget.getBoundingClientRect();
+          const surface = card.current;
+          if (!surface) return;
+          const rect = surface.getBoundingClientRect();
           const x = (event.clientX - rect.left) / rect.width - 0.5;
           const y = (event.clientY - rect.top) / rect.height - 0.5;
-          event.currentTarget.style.setProperty("--tilt-x", `${-y * 20}deg`);
-          event.currentTarget.style.setProperty("--tilt-y", `${x * 20}deg`);
-          event.currentTarget.style.setProperty("--foil-x", `${50 + x * 100}%`);
-          event.currentTarget.style.setProperty("--foil-y", `${50 + y * 100}%`);
-          event.currentTarget.style.setProperty(
+          surface.style.setProperty("--tilt-x", `${-y * 20}deg`);
+          surface.style.setProperty("--tilt-y", `${x * 20}deg`);
+          surface.style.setProperty("--foil-x", `${50 + x * 100}%`);
+          surface.style.setProperty("--foil-y", `${50 + y * 100}%`);
+          surface.style.setProperty("--foil-active", "1");
+          // Project the pointer into the fixed lower-right foil region.
+          surface.style.setProperty("--foil-hot-x", `${((x + 0.5) * rect.width - (rect.width - 168)) / 190 * 100}%`);
+          surface.style.setProperty("--foil-hot-y", `${((y + 0.5) * rect.height - (rect.height - 220)) / 200 * 100}%`);
+          surface.style.setProperty(
             "--glare",
             `${Math.abs(x) * 0.5}`,
           );
         }}
         onPointerLeave={resetTilt}
-        onPointerUp={resetTilt}
-        onPointerCancel={resetTilt}
+        onPointerUp={(event) => {
+          const start = gesture.current;
+          if (start && start.pointerId !== event.pointerId) return;
+          gesture.current = null;
+          lanyard.controller.current?.release();
+          resetTilt();
+          if (!start) return;
+          const dx = Math.abs(event.clientX - start.x);
+          const dy = Math.abs(event.clientY - start.y);
+          suppressClick.current = dx > 8 || dy > 8;
+          if (performance.now() - start.time < 260 && dx >= 44 && dx > dy * 1.3) flip();
+        }}
+        onPointerCancel={() => {
+          gesture.current = null;
+          suppressClick.current = true;
+          lanyard.controller.current?.release();
+          resetTilt();
+        }}
+      >
+        <svg className="pass-lanyard" aria-hidden="true">
+          <g ref={lanyard.strap} fill="none" strokeLinecap="round">
+            <path className="pass-strap-edge" />
+            <path className="pass-strap-fabric" />
+            <path className="pass-strap-stitch" />
+          </g>
+        </svg>
+        <div ref={lanyard.hanger} className="pass-hanger">
+          <button type="button" className="pass-clip" aria-label="Swing the pass"
+            onClick={() => {
+              if (suppressClick.current) { suppressClick.current = false; return; }
+              lanyard.controller.current?.nudge();
+            }}>
+            <span aria-hidden="true" />
+          </button>
+          <div ref={card}
+            className={`pass-card ${flipped ? "is-flipped" : ""} ${admitted ? "is-admitted" : ""}`}
         style={
           {
-            "--holo-pattern": `url("${assetPath("/card/holo-mark.svg")}")`,
-            "--edition-offset": `${seed % 80}px`,
+            "--foil-grain": `url("${assetPath("/card/foil-grain.svg")}")`,
+            "--brand-mark": `url("${assetPath("/hao-logo.svg")}")`,
           } as CSSProperties
         }
       >
@@ -148,6 +222,8 @@ export function WorldPass({
               inert={flipped}
             >
               <HoloFoil />
+              <button type="button" className="pass-flip-surface"
+                aria-label="Turn pass over to the island journal" onClick={flipFromSurface} />
               <div className="pass-topline">
                 <span className="pass-status-dot" />
                 <span>PASS-ID // {passNumber(pass).slice(3)}</span>
@@ -219,6 +295,8 @@ export function WorldPass({
               inert={!flipped}
             >
               <HoloFoil />
+              <button type="button" className="pass-flip-surface"
+                aria-label="Turn pass over to the front" onClick={flipFromSurface} />
               <h3>
                 Your little
                 <br />
@@ -253,12 +331,15 @@ export function WorldPass({
           </div>
         </div>
       </div>
+        </div>
+      </div>
+      <p className="pass-flip-hint">Drag to swing · tap or swipe to turn.</p>
       <div className="pass-tools">
         <button
           type="button"
           className="text-button"
           disabled={admitted}
-          onClick={() => setFlipped(!flipped)}
+          onClick={flip}
         >
           <RotateCw size={14} /> {flipped ? "Front of pass" : "Turn it over"}
         </button>
@@ -303,12 +384,7 @@ export function WorldPass({
 function HoloFoil() {
   return (
     <div className="pass-holo" aria-hidden="true">
-      <div className="foil-base" />
-      <div className="foil-pattern" />
-      <div className="foil-pattern foil-pattern-secondary" />
-      <div className="foil-spectrum" />
-      <div className="foil-glare" />
-      <div className="foil-edge" />
+      <div className="foil-emblem" />
     </div>
   );
 }

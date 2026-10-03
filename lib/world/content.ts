@@ -578,6 +578,8 @@ export const contentScenes: ContentScene[] = [
   {id:"airfield",place:"airport",title:"Arrivals & departures",subtitle:"Island infrastructure",description:"One runway, shared taxiways and a quieter rhythm between flights. A procedural part of the WONDERHAO world.",kind:"gateway",projects:[]},
   {id:"reef",place:"dive",title:"The living reef",subtitle:"Underwater exploration",description:"Sand gives way to seagrass and sheltered rock gardens. Observe the schools of fish from above.",kind:"gateway",projects:[]},
   {id:"observatory",place:"dive",title:"Underwater observatory",subtitle:"Marine research habitat",description:"A small observation station on an open seabed platform, beyond the reef. Part of this fictional world, not a real research facility.",kind:"gateway",projects:[]},
+  {id:"sphere",place:"dive",title:"The Sphere",subtitle:"Glass below the tide",description:"One open room above and below the tide. Follow the winding stair to the lowest viewing gallery; outside, an ocean promenade rests on eight columns, with searchlights revealing fish and the seabed.",kind:"gateway",projects:[]},
+  {id:"cube",place:"dive",title:"The Cube",subtitle:"Beyond the island / Offshore trench",description:"A perfect cube, half claimed by the seabed and the trench wall. No doors, no windows, no seams. Nothing grows on its untouched surface. After dusk, its pale light reaches the sea above.",kind:"gateway",projects:[]},
 ];
 export const sceneById = (id?: string | null) =>
   contentScenes.find((s) => s.id === id);

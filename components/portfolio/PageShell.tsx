@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 import { ArrowLeft, ArrowUpRight } from "lucide-react";
 export function PageShell({ children }: { children: React.ReactNode }) {
   return (
@@ -7,8 +8,8 @@ export function PageShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <header className="editorial-header">
-        <Link href="/" className="wordmark">
-          WONDERHAO<span className="wordmark-symbol">✳</span>
+        <Link href="/" className="site-brand" aria-label="WONDERHAO home">
+          <Logo />
         </Link>
         <nav aria-label="Main navigation">
           <Link href="/work">Projects</Link>

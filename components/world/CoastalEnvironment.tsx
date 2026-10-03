@@ -6,7 +6,7 @@ import {weatherAt,type Weather} from '@/lib/world/city-plan';
 import {SUN_DIRECTION} from '@/lib/world/city-buildings';
 import type {Clock} from './CityLife';
 
-export function CoastalEnvironment({clock,dusk,low,underwater,weather}:{clock:Clock;dusk:boolean;low:boolean;underwater?:boolean;weather:Weather}){
+export function CoastalEnvironment({clock,dusk,low,underwater,trench=false,sphere=false,weather}:{clock:Clock;dusk:boolean;low:boolean;underwater?:boolean;trench?:boolean;sphere?:boolean;weather:Weather}){
  const material=useRef<THREE.ShaderMaterial>(null);
  const sun=useRef<THREE.DirectionalLight>(null),sky=useRef<THREE.Mesh>(null),rain=useRef<THREE.LineSegments>(null);
  const {controls}=useThree();
@@ -21,8 +21,8 @@ export function CoastalEnvironment({clock,dusk,low,underwater,weather}:{clock:Cl
   if(rain.current){rain.current.visible=!underwater&&!low&&w>.8;rain.current.position.set(target.x,80-(clock.current*48%180),target.z)}
  });
  return <>
- <color attach="background" args={[underwater?'#286577':'#9fc5d4']}/>
- <fog attach="fog" args={[underwater?'#286577':dusk?'#193049':'#bbd2d7',underwater?20:1900,underwater?160:12500]}/>
+ <color attach="background" args={[underwater?(trench?(dusk?'#04121d':'#153b46'):sphere&&dusk?'#102f40':'#286577'):'#9fc5d4']}/>
+ <fog attach="fog" args={[underwater?(trench?(dusk?'#04121d':'#153b46'):sphere&&dusk?'#102f40':'#286577'):dusk?'#193049':'#bbd2d7',underwater?(trench?85:sphere?45:20):1900,underwater?(trench?440:sphere?380:160):12500]}/>
  <hemisphereLight args={[dusk?'#9dbce7':'#b9d7ec',dusk?'#172738':'#7b8064',dusk?.25:1.35]}/>
  <directionalLight ref={sun} color={dusk?'#98b9e9':'#fff6e6'} castShadow={!low} shadow-mapSize={[2048,2048]} shadow-camera-left={-560} shadow-camera-right={560} shadow-camera-top={560} shadow-camera-bottom={-560} shadow-camera-far={2400} shadow-normalBias={.18} shadow-bias={-.0003}/>
  <mesh ref={sky} renderOrder={-10} frustumCulled={false}>

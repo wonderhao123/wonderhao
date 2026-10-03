@@ -140,3 +140,41 @@ Same-camera full-scene samples, 1440×960, reduced motion (snapshots, not a fram
 | Harbour | 398 / 1,153,308 | 374 / 1,424,882 |
 
 More detail raises triangle cost about 21–26% in these views. Airport/harbour draw calls decrease through material batching. The mobile lightweight sample rendered 132 calls / 981,158 triangles; this is a desktop browser viewport, not physical-phone performance certification. Initial terrain shader reserved-word failure was repaired and the browser matrix rerun successfully; redundant per-pane frames were replaced with shared mullions before final verification. No deployment performed.
+
+## Ring armillary courtyard — 2026-10-03
+
+Replaced the axial courtyard pavilion with an original reference-inspired armillary fountain at the Ring's local origin: eight-point limestone tiers, bronze mechanical bearing, three tilted outer orbits, an inner gimbal, open aquamarine ribbons and a pearl nucleus. A shallow circular pool, radial paving, four diagonal rills, curved seats and four crescent gardens form the surrounding court. Sixteen trees stay outside the gathering space and four axial approaches. The facade, foundation, violet roof loops, B1/B2 and project routes are preserved. Water arcs and ribbons are static sculptural geometry; no external textures, new point lights or animation loop were introduced.
+
+Validation: 44/44 tests, TypeScript, targeted ESLint, content validation, webpack production build and `git diff --check` passed. Exported-geometry regression checks cover the centred nucleus/orbits, garden and axis clearance, sculpture height, both roof-light loops and both asset qualities. Production Chromium screenshots and interaction checks covered standard daylight/dusk, lightweight dusk, 390×844 lightweight daylight with rain selected, B1 → B2 → Back outside, and return to the courtyard. No horizontal overflow at 390px. No script/WebGL errors; only the existing `THREE.Clock` deprecation warning was observed. These are desktop-browser checks, not physical-phone performance measurements.
+
+| Ring asset | Baseline triangles / bytes | Current triangles / bytes | Material batches |
+| --- | --- | --- | --- |
+| Standard | 120,480 / 3,833,548 | 162,980 / 5,249,504 | 10 → 13 |
+| Lightweight | 45,839 / 1,665,616 | 61,922 / 2,300,452 | 10 → 13 |
+
+The three added batches are bronze, aquamarine emission and pearl emission. Lightweight geometry retains approximately 38% of the standard triangle count. Generated GLBs and their source fingerprint are updated. No commit, push or deployment performed.
+
+## The Cube / offshore trench — 2026-10-03
+
+Added a perfect 56m cube at [980, -36, 1120], roughly 986m from the dive centre. Its top stays 8m underwater, its bottom intersects the seabed and its east side enters a 40m trench wall. All six faces share a clean, untextured material with no openings, seams, corrosion or attached life. Fixed cold-white emission illuminates the entire solid at dusk. A bounded refracted-box approximation in the existing sea shader reveals its light from above water, attenuated by depth and masked by the surveyed seabed; it is not full volumetric light transport.
+
+The directory opens its surface view; the existing dive-kit flow provides descent and return to shore. Camera limits now include the offshore site, preserve portrait framing and reject positions inside the cube or trench rock. The terrain source, water-depth survey and underwater patch share one height function. Both quality tiers retain the 12-triangle cube; the local underwater terrain uses 43,008 triangles in standard and 10,752 in lightweight. Regeneration changed 60 local terrain LOD tiles plus the far mesh, water survey and manifest; no dependency was added.
+
+Validation: 46/46 tests, TypeScript, targeted ESLint, content validation, webpack production build, strict UI audit (0 findings) and `git diff --check` passed. Production Chromium checks covered standard/lightweight daylight and dusk underwater, night visibility from the sea surface, directory → dive kit → descent → return, repeated zoom without entering the solid, and 390×844 lightweight framing with no horizontal overflow. No script or shader errors; the existing `THREE.Clock` deprecation warning remains. Quality switches dispose the previous WebGL context normally. Screenshots are desktop-browser evidence, not physical-phone or frame-rate certification. Temporary verification files were removed; selected previews live outside the repository. No commit, push or deployment performed.
+
+## The Sphere / connected atrium and stable rendering — 2026-10-03
+
+The 70m glass sphere now contains a single vertically connected room. Removed the full waterline floor and central desk. Seven narrow perimeter balconies share a clear shaft above a bottom observation floor at local Y -32m. A continuous 3.3m-wide winding stair joins all levels, with risers at most 175mm, radial landings, twin stringers and guardrails. All treads and landings are retained without decimation in both quality tiers. The glass has the same clear opacity above and below water; the extra opaque upper-glass shader is removed. Existing water exclusion keeps the interior dry and the vertical view open.
+
+The 6.8m promenade, exactly eight seabed piles, east airlock/landing, eight fixed searchlights and 64/24 fish remain. The Sphere now opens at the surface even with a collected dive kit; its existing descent control enters the underwater view. Close surface inspection and near-vertical viewing are enabled, and underwater rotation can look upward. Sphere/seabed collision and return-to-shore remain.
+
+The recording showed the canvas briefly exposing the map underneath. Browser pixel probes reproduced transparent output during camera motion. A controlled A/B run found 118 affected frames among 520 with multisampled targets, and none among 446 single-sample frames. The final HDR/Bloom chain uses single-sample targets followed by FXAA; opaque focus materials use alpha hashing, preserving batched fade behavior without MSAA. No renderer monkeypatch or debug global ships. The existing research-building hover interaction was also checked in the browser.
+
+Validation: **52/52 tests**, TypeScript, targeted ESLint, content checks and webpack production build passed. Both exported qualities pass actual triangle raycasts from the upper room to the bottom floor and the reciprocal upward view, plus continuous stair-height coverage, complete lower glazing, promenade, eight pile feet and lamp lenses. Production browser checks covered standard/lightweight surface and underwater views, day/night, close zoom and actual downward/upward orbit. The final renderer passed 1,032 standard and 504 lightweight frames with zero transparent samples or black frames; the eight-light/fish/collision regression passed in both tiers. The 390×844 lightweight view passed the kit → descent → return flow with no horizontal overflow. No script or shader errors were observed. A final exported-geometry regression also checks that a balcony can enter its stair landing through an actual gap in the outer handrail.
+
+| Sphere asset | Triangles | Bytes | Material batches |
+| --- | --- | --- | --- |
+| Standard | 653,636 | 21,231,572 | 10 |
+| Lightweight | 250,538 | 8,277,488 | 10 |
+
+The complete multi-level interior increases geometry; lightweight keeps about 38% of standard triangles, with all stair treads preserved. No new package or external asset. Temporary captures, probe scripts and logs were cleaned; selected final previews are kept outside the repository. Narrow-screen checks use desktop Chromium, not a physical-phone benchmark. Existing `THREE.Clock` deprecation warning remains. No commit, push or deployment performed.

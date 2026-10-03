@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { CITY,weatherAt,type Weather } from "@/lib/world/city-plan";
+import { CITY,cubeSite,weatherAt,type Weather } from "@/lib/world/city-plan";
 import { cityAsset } from "@/lib/world/assets";
 const survey = {width:CITY.width,depth:CITY.depth,centerZ:0};
 import spec from '@/lib/world/landmark-spec.json';
@@ -62,6 +62,7 @@ void main(){
 }`;
 const fragmentShader = `
 uniform sampler2D nightMap;uniform float nightAmount;
+uniform vec4 cube;uniform float cubeNight;
 uniform float time; uniform vec3 deep,shallow,foam,sun,sky;uniform float daylight;uniform float storm;uniform vec4 observatory;
 varying vec3 waterPosition;
 ${depthCode}
@@ -111,6 +112,32 @@ void main(){
  float shore=max(breaker*(.4+.6*flecks),contact*.25)*(1.-river);
  color=mix(color,foam,shore*.52);
  color=mix(color,color*.72,storm*.4);
+ // Fixed submerged cube seen through the opaque sea, using a refracted box ray.
+ // This bounded approximation preserves the six-plane silhouette in both tiers;
+ // the surveyed bed masks the part buried in the trench rather than drawing it over rock.
+ if(river<.5&&eye.y>0.&&distance(p,cube.xz)<cube.w*5.){
+  vec3 ray=refract(-eye,n,.75);
+  vec3 inv=1./(sign(ray)*max(abs(ray),vec3(.0001))+vec3(.000001));
+  vec3 a=(cube.xyz-vec3(cube.w)-waterPosition)*inv;
+  vec3 b=(cube.xyz+vec3(cube.w)-waterPosition)*inv;
+  vec3 nearHit=min(a,b),farHit=max(a,b);
+  float entry=max(max(nearHit.x,nearHit.y),nearHit.z);
+  float exitRay=min(min(farHit.x,farHit.y),farHit.z);
+  if(exitRay>max(0.,entry)){
+   vec3 hit=waterPosition+ray*max(0.,entry);
+   float bed=-.08-waterDepth(hit.xz);
+   if(hit.y>bed+.25){
+    float top=step(cube.y+cube.w-.05,hit.y);
+    float side=step(cube.w-.05,abs(hit.x-cube.x));
+    float face=mix(.64,.87,side);face=mix(face,1.,top);
+    float clarity=exp(-max(0.,-hit.y)*.045)*(1.-fresnel*.6);
+    vec3 transmitted=mix(vec3(.19,.43,.44),vec3(.75,1.7,1.6),cubeNight)*face;
+    color=mix(color,transmitted,clarity*mix(.18,.9,cubeNight));
+   }
+  }
+  vec2 halo=(p-cube.xz)/(cube.w*1.3);
+  color+=vec3(.025,.13,.14)*exp(-dot(halo,halo))*cubeNight*(1.-fresnel);
+ }
  gl_FragColor=vec4(color,1.);
  #include <tonemapping_fragment>
  #include <colorspace_fragment>
@@ -135,6 +162,7 @@ function WaterMaterial({
   const uniforms = useMemo(
     () => ({
       nightMap:nightField.texture,nightAmount:nightField.amount,
+      cube:{value:new THREE.Vector4(...cubeSite.center,cubeSite.size/2)},cubeNight:{value:0},
       time: { value: 0 },
       depthMap: { value: depthMap ?? null },
       river: { value: river ? 1 : 0 },
@@ -159,6 +187,7 @@ function WaterMaterial({
     u.foam.value.set(dusk ? "#345569" : "#e0efe5");
     u.sky.value.set(dusk ? "#233c58" : "#84b1c7");
     u.daylight.value = dusk ? 0.09 : 1;
+    u.cubeNight.value = dusk ? 1 : 0;
     invalidate();
   }, [dusk, river, invalidate, uniforms]);
   useFrame((_, dt) => {

@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 export default function ErrorPage({ reset }: { reset: () => void }) {
   return (
     <main className="error-page">
-      <span className="eyebrow">WONDERHAO</span>
+      <Logo />
       <h1>A small detour.</h1>
       <p>
         This part of the island couldn’t load. Try again, or explore the project

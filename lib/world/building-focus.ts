@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-/** Shared per-scene uniforms; multisample alpha coverage keeps batching/depth/shadows stable. */
+/** Shared per-scene uniforms; alpha hashing preserves batched focus fades without multisample targets. */
 export const buildingFocus={target:{value:0},amount:{value:0}};
 export function focusSurface(shader:THREE.WebGLProgramParametersWithUniforms,instanced:boolean,owner=0){
  shader.uniforms.focusTarget=buildingFocus.target;shader.uniforms.focusAmount=buildingFocus.amount;

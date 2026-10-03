@@ -2,6 +2,17 @@
 export type V3 = [number, number, number];
 export type P2 = [number, number];
 export const CITY = { width: 7168, depth: 5120, tile: 256, sea: 0, version: 3 };
+/** One surveyed solid: no facade, panels, openings or surface attachments. */
+export const cubeSite = {center:[980,-36,1120] as V3, size:56, floor:-56, rim:-16, extent:[240,340] as P2};
+export function cubeTrenchHeight(x:number,z:number){
+ const dx=x-cubeSite.center[0],dz=z-cubeSite.center[2];
+ const ramp=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t)};
+ const east=ramp((dx-8-Math.sin(dz*.045)*2)/16);
+ const west=ramp((-dx-86-Math.sin(dz*.027)*5)/38);
+ const ends=ramp((Math.abs(dz)-190)/95);
+ const rock=Math.max(east,west,ends);
+ return cubeSite.floor+(cubeSite.rim-cubeSite.floor)*rock+(.6*Math.sin(dx*.12)*Math.cos(dz*.09)+1.1*Math.sin(dz*.052))*(.25+rock*.75);
+}
 export const sites = {
   town: [0, 20, 0], commons: [80, 76, -480], archive: [-220, 20, 65],
   station: [-220, 20, -145], atelier: [145, 20, 150], arrival: [100, 8, 510],
@@ -187,6 +198,10 @@ export function baseHeight(x:number,z:number){
  h=h*(1-marinaMask)-20*marinaMask;
  // Excavated spherical observatory basin, smoothly graded into the surrounding seabed.
  const basin=smooth(clamp((Math.hypot(x-480,z-390)-38)/34));h=Math.min(h,-40)*(1-basin)+h*basin;
+ // An isolated offshore shelf splits into a trench. The Cube intersects both its
+ // floor and eastern wall; terrain, underwater mesh and water survey share this cut.
+ const cubeBlend=1-smooth(clamp(Math.max(Math.abs(x-cubeSite.center[0])-cubeSite.extent[0],Math.abs(z-cubeSite.center[2])-cubeSite.extent[1])/80));
+ if(cubeBlend>0)h=h*(1-cubeBlend)+cubeTrenchHeight(x,z)*cubeBlend;
  const w=channel(x,z);if(w.d<w.width/2+30){const t=smooth(clamp((w.d-w.width/2)/30));h=(w.y-2)*(1-t)+h*t}
  return h;
 }

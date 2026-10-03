@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { Logo } from "@/components/ui/Logo";
 import {
   Component,
   useCallback,
@@ -281,7 +282,7 @@ export function WorldApp() {
   const enterScene = (id: string) => {
     const scene = sceneById(id);
     if (!scene) return;
-    navigate({ place: scene.place, scene: scene.id, ...(scene.place === "dive" && pass?.diveKit ? {view:"underwater" as const} : {}) });
+    navigate({ place: scene.place, scene: scene.id, ...(scene.place === "dive" && scene.id!=="cube" && scene.id!=="sphere" && pass?.diveKit ? {view:"underwater" as const} : {}) });
     setCommand((c) => ({
       id: c.id + 1,
       type: "focus",
@@ -545,7 +546,7 @@ export function WorldApp() {
             {activePlace.id === "dive" && <div className="dive-kit">
               <svg viewBox="0 0 300 110" role="img" aria-label="Dive kit: mask, fins, wetsuit and air cylinder"><g fill="none" stroke="currentColor" strokeWidth="3"><rect x="18" y="25" width="62" height="28" rx="10"/><path d="M49 27v23M16 34H8v28h18M108 17l-8 68 18 12 13-70zM143 17l-7 68 19 12 7-71zM183 15l-15 21 12 8 7-9-3 58h17l4-29 4 29h17l-3-58 7 9 12-8-15-21-13 9h-17z"/><rect x="261" y="23" width="25" height="72" rx="10"/><path d="M273 23V12h12M261 50h25"/></g></svg>
               <p>{pass?.diveKit ? "Your dive kit is ready. The reef is yours to explore." : "A mask, fins, a wetsuit and an air cylinder. Collect your kit to open the underwater view."}</p>
-              {!pass?.diveKit ? <button className="primary-button" onClick={() => {savePass(collectDiveKit);setNotice("Dive kit collected. Your World Pass is ready for the reef.")}}>Collect dive kit <ArrowRight size={16}/></button> : route.view !== "underwater" ? <button className="primary-button" onClick={() => navigate({place:"dive",scene:"reef",view:"underwater"})}>Enter underwater world <ArrowRight size={16}/></button> : <button className="secondary-button" onClick={() => navigate({place:"dive"})}>Return to shore</button>}
+              {!pass?.diveKit ? <button className="primary-button" onClick={() => {savePass(collectDiveKit);setNotice("Dive kit collected. Your World Pass is ready for the reef.")}}>Collect dive kit <ArrowRight size={16}/></button> : route.view !== "underwater" ? <button className="primary-button" onClick={() => navigate({place:"dive",scene:activeScene?.id==="cube"?"cube":activeScene?.id==="sphere"?"sphere":"reef",view:"underwater"})}>{activeScene?.id==="cube"?"Descend to The Cube":activeScene?.id==="sphere"?"Descend beneath The Sphere":"Enter underwater world"} <ArrowRight size={16}/></button> : <button className="secondary-button" onClick={() => navigate({place:"dive"})}>Return to shore</button>}
             </div>}
             {["airport","arrival","works"].includes(activePlace.id) && <p className="city-observe">{activePlace.id === "airport" ? "Watch the apron: aircraft push back, taxi and take turns on the runway." : activePlace.id === "arrival" ? "Cruise and ferry berths share the passenger waterfront. Ships arrive, pause alongside and depart." : "Supply ships work the quay; the dry dock holds a vessel under repair."}</p>}
             {["airport","dive","commons"].includes(activePlace.id) && <button className="text-button" onClick={() => openProject(projectBySlug("wonderhao-world")!)}>How this world is made ↗</button>}
@@ -649,7 +650,7 @@ export function WorldApp() {
         )}
         <div className="world-bottom">
           <div className="world-coordinates">
-            <span>WONDERHAO / EXPLORABLE PORTFOLIO</span>
+            <span className="world-brand"><Logo /> EXPLORABLE PORTFOLIO</span>
             <span>
               EST. 2026 <i />{" "}
               {settings.dusk ? "18:40 / BLUE HOUR" : "16:20 / LATE AFTERNOON"}
@@ -770,14 +771,14 @@ export function WorldApp() {
         )}
       </div>
       {!ready && !failed && pass && !first && !modal && <section className="world-reveal" aria-label="Preparing your world" role="status">
-        <span className="eyebrow">WONDERHAO / ARRIVING</span><div className="reveal-orbit" aria-hidden="true"/>
+        <Logo /><span className="eyebrow">ARRIVING</span><div className="reveal-orbit" aria-hidden="true"/>
         <h2>{Object.values(regionStates).includes('error')?'The crossing needs another try.':regionStates.gpu==='loading'?'Bringing the city into light.':'The bay is taking shape.'}</h2>
         <p>Preparing the streets, mountain ridges and waterfront for your first view.</p>
         <div><button className="secondary-button" onClick={()=>{setRegionStates({});setRetry(v=>v+1)}}>Retry</button><button className="secondary-button" onClick={()=>{setRegionStates({});updateSettings({quality:'low'});setRetry(v=>v+1)}}>Use lightweight view</button><Link href="/work">Browse the work ↗</Link></div>
       </section>}
       {!pass && (
         <div className="initial-loading" role="status">
-          <span className="eyebrow">WONDERHAO</span>
+          <Logo />
           <p>A little world is waiting.</p>
           <span className="loading-dot" />
           <Link href="/work">Browse the work</Link>
@@ -786,9 +787,7 @@ export function WorldApp() {
       {first && pass && (
         <section className="arrival-screen" aria-label="Welcome to WONDERHAO">
           <header>
-            <span className="wordmark">
-              WONDERHAO<span className="wordmark-symbol">✳</span>
-            </span>
+            <Logo />
             <Link href="/work">
               Just here for the work? <ArrowUpRight size={15} />
             </Link>
@@ -859,6 +858,7 @@ export function WorldApp() {
                 </button>
               ))}
               {Object.entries(mountainSites).map(([id,site])=><button key={id} onClick={()=>{navigate({});setPanel(null);setFocusedBuilding(undefined);setNotice(site.description);setCommand(c=>({id:c.id+1,type:'mountain',building:id}))}}><span>↟</span><div><strong>{site.name}</strong><p>{site.description}</p></div><ChevronRight size={18}/></button>)}
+              <button onClick={()=>{setPanel(null);setFocusedBuilding(undefined);enterScene('cube')}}><span>◇</span><div><strong>The Cube</strong><p>A silent light beneath the open sea. Visit the offshore trench.</p></div><ChevronRight size={18}/></button>
               <Link href="/work" className="text-button">
                 <BookOpen size={16} />
                 Prefer a list? Browse every project.
