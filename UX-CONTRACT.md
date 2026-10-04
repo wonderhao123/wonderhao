@@ -7,6 +7,7 @@
 | Dialogs          | components/world/Dialog.tsx                    | Native modal dialog, labelled title, initial close-button focus, Escape, focus restoration after inert state clears |
 | World navigation | components/world/WorldApp.tsx                  | Place/scene/project query parameters, history restoration, direct project access                                    |
 | Camera           | components/world/CameraRig.tsx                 | Horizontal map pan by default, explicit current-target rotation, bounded zoom, interruptible travel and settled snapshots                                             |
+| Equipment inspection | components/world/DiveKitViewer.tsx + Dialog | Drag / touch orbit, arrow controls and Home/reset; isolated from the island camera, on-demand rendering, recoverable preview failure; dialog close restores Inspect kit focus |
 | Pass persistence | lib/world/pass.ts                              | Validated versioned local record, anonymous by default, idempotent stamps                                           |
 | Feedback         | WorldApp live region and local status messages | Success/error feedback never blocks access to work                                                                  |
 | Text input       | WorldPass                                      | Optional nickname, Unicode-safe limit, no personal data requirement                                                 |

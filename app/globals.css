@@ -3979,12 +3979,29 @@ html {
   border-block: 1px solid #a8c9c733;
 }
 
-.dive-kit>svg {
-  width: 100%;
-  max-height: 100px;
-  color: #aadad2;
-  margin-bottom: 10px;
-}
+/* Dive kit uses the existing graphite, cyan and mono UI tokens. */
+.world-dialog:has(.kit-viewer-expanded) {margin:auto;}
+.kit-loading-frame {height:355px;}
+.kit-caption {display:flex;justify-content:space-between;gap:12px;font:9px var(--font-geist-mono);letter-spacing:.06em;color:var(--muted);}
+.kit-stage {position:relative;height:285px;isolation:isolate;touch-action:none;cursor:grab;outline-offset:3px;background:radial-gradient(ellipse at 50% 48%,#26445266,transparent 68%);}
+.kit-stage:active {cursor:grabbing;}
+.kit-stage:focus-visible {outline:2px solid var(--accent);}
+.kit-loading {position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-size:12px;color:var(--muted);}
+.kit-fallback {display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:20px;gap:8px;cursor:default;}
+.kit-fallback p {margin:0;font-size:12px;}
+.kit-controls {display:flex;justify-content:center;align-items:center;gap:2px;}
+.kit-controls .icon-button {width:44px;height:44px;flex-shrink:0;}
+.kit-expand {display:flex;gap:7px;align-items:center;justify-content:center;min-height:44px;margin-left:auto;padding:0 8px;font-size:11px;color:var(--ink);cursor:pointer;}
+.kit-controls button:disabled {opacity:.35;cursor:default;}
+.kit-controls button:not(:disabled):hover {color:var(--accent);background:#67e8f90b;}
+.kit-viewer .kit-hint {margin:4px 0 0;text-align:center;font:10px var(--font-geist-mono);color:var(--muted);}
+.kit-viewer-expanded .kit-stage {height:min(53vh,510px);min-height:280px;}
+.kit-materials {display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:24px;padding-top:18px;border-top:1px solid var(--card-edge);}
+.kit-materials div {display:flex;flex-direction:column;gap:6px;}
+.kit-materials span {font:10px var(--font-geist-mono);color:var(--muted);}
+.kit-materials strong {font-size:12px;font-weight:400;color:var(--ink);}
+@media(max-width:700px){.place-panel:has(.dive-kit){bottom:190px;max-height:min(55dvh,calc(100dvh - 330px));}.dive-kit .kit-stage{height:200px;}.dive-kit .kit-loading-frame{height:270px;}}
+@media(max-width:600px){.kit-viewer-expanded .kit-stage{height:49svh;min-height:260px;}.kit-materials{grid-template-columns:1fr;gap:12px;margin-top:16px;}.kit-materials div{flex-direction:row;justify-content:space-between;gap:12px;}}
 
 .dive-kit p,
 .city-observe {

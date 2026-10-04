@@ -3,7 +3,7 @@ export type V3 = [number, number, number];
 export type P2 = [number, number];
 export const CITY = { width: 7168, depth: 5120, tile: 256, sea: 0, version: 3 };
 /** One surveyed solid: no facade, panels, openings or surface attachments. */
-export const cubeSite = {center:[980,-36,1120] as V3, size:56, floor:-56, rim:-16, extent:[240,340] as P2};
+export const cubeSite = {center:[1120,-54,1420] as V3, size:56, floor:-74, rim:-34, extent:[240,340] as P2};
 export function cubeTrenchHeight(x:number,z:number){
  const dx=x-cubeSite.center[0],dz=z-cubeSite.center[2];
  const ramp=(v:number)=>{const t=Math.max(0,Math.min(1,v));return t*t*(3-2*t)};

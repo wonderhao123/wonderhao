@@ -1,20 +1,32 @@
 "use client";
-import {useEffect,useState} from 'react';
-import {useThree} from '@react-three/fiber';
+import {useEffect,useMemo,useState} from 'react';
+import {useFrame,useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {LANDMARK_VERSION} from '@/lib/world/landmark-version';
 import {focusSurface} from '@/lib/world/building-focus';
 import {assetPath} from '@/lib/world/assets';
+const orbitSpeeds=[[.17,.065],[-.13,.08],[.10,-.045],[-.22,.10],[.15,-.07]];
 function dispose(root:THREE.Group){
  const geometries=new Set<THREE.BufferGeometry>(),materials=new Set<THREE.Material>();
  root.traverse(o=>{if(o instanceof THREE.Mesh){geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])materials.add(m)}});
  geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
 }
 /** Each mount owns parsed resources, avoiding shared-cache disposal races. */
-export function LandmarkAsset({name,dusk=false,onStatus,low=false,statusId=name}:{statusId?:string;name:'observatory'|'habitat'|'ship-hull'|'ring';dusk?:boolean;low?:boolean;onStatus?:(id:string,state:string)=>void}){
+export function LandmarkAsset({name,dusk=false,onStatus,low=false,statusId=name,animate=false}:{animate?:boolean;statusId?:string;name:'observatory'|'habitat'|'ship-hull'|'ring';dusk?:boolean;low?:boolean;onStatus?:(id:string,state:string)=>void}){
  const variant=name+(low&&name!=='ship-hull'?'-low':'');
  const [root,setRoot]=useState<THREE.Group>();const [attempt,setAttempt]=useState(0);const {invalidate}=useThree();
+ // Independent assemblies preserve their shared centre; no per-frame allocation.
+ const orbits=useMemo(()=>Array.from({length:5},(_,i)=>root?.getObjectByName(`Ring_orbit_${i+1}`)),[root]);
+ useEffect(()=>{
+  if(!animate||!low||name!=='ring'||!root)return;
+  const timer=window.setInterval(invalidate,50);return()=>window.clearInterval(timer);
+ },[animate,low,name,root,invalidate]);
+ useFrame((_,dt)=>{
+  if(!animate)return;
+  const step=Math.min(dt,.1);
+  orbits.forEach((orbit,i)=>{if(orbit){orbit.rotation.y+=step*orbitSpeeds[i][0];orbit.rotation.x+=step*orbitSpeeds[i][1];}});
+ });
  useEffect(()=>{
   let alive=true,loaded:THREE.Group|undefined;const controller=new AbortController();onStatus?.(statusId,'loading');
   fetch(assetPath(`/world/models/${variant}.glb?v=${LANDMARK_VERSION}`),{signal:controller.signal}).then(r=>{if(!r.ok)throw Error('Landmark unavailable');return r.arrayBuffer()}).then(b=>new GLTFLoader().parseAsync(b,''))

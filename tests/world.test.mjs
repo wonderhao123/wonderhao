@@ -58,7 +58,7 @@ const plan=await import(planUrl);
 test('The Cube is submerged, partly buried in its trench floor and embedded in the east wall',()=>{
  const {cubeSite,cubeTrenchHeight}=plan,[x,y,z]=cubeSite.center,half=cubeSite.size/2;
  assert.equal(cubeSite.size,56);
- assert.ok(y+half<-5,'even the top face stays below waves');
+ assert.ok(y+half<=-26,'the top face stays deep below the sea surface');
  const floor=terrainHeight(x-half,z),wall=terrainHeight(x+half,z);
  assert.ok(floor>y-half&&floor<y,'lower cube must intersect the floor');
  assert.ok(wall>y&&wall<y+half,'rock swallows the east face but leaves its top visible');
@@ -67,7 +67,18 @@ test('The Cube is submerged, partly buried in its trench floor and embedded in t
   assert.equal(terrainHeight(x+dx,z+dz),cubeTrenchHeight(x+dx,z+dz));
   assert.ok(terrainHeight(x+dx,z+dz)<-10,'the entire trench stays underwater');
  }
- assert.ok(Math.hypot(x-plan.sites.dive[0],z-plan.sites.dive[2])>800,'separate offshore destination');
+ assert.ok(Math.hypot(x-plan.sites.dive[0],z-plan.sites.dive[2])>1200,'separate offshore destination');
+ const sphere=JSON.parse(readFileSync(new URL('../lib/world/landmark-spec.json',import.meta.url),'utf8')).observatory.center;
+ assert.ok(Math.hypot(x-sphere[0],z-sphere[2])>1200,'keep the trench distant from The Sphere');
+ for(const scale of [1,1.6]){
+  const camera=[x-105*scale,y+(scale>1?44:24),z+135*scale];
+  assert.ok(camera[1]<=-10&&camera[1]>terrainHeight(camera[0],camera[2])+3,'the dive opens below water and clear of the trench wall');
+  const visibleFoot=[x-half,y-half+12,z+half];
+  for(let t=0;t<1;t+=.02){
+   const ray=camera.map((v,i)=>v+(visibleFoot[i]-v)*t);
+   assert.ok(ray[1]>terrainHeight(ray[0],ray[2])+1,'foreground rock must not hide the cube in portrait framing');
+  }
+ }
 });
 const {busState,busRoutes,aircraftState,vesselState,vesselSpecs}=await import(url(compile("../lib/world/city-life.ts").replace(/(["'])\.\/city-plan\1/g,JSON.stringify(planUrl))));
 test("authored road grades obey the town and mountain budgets",()=>{

@@ -71,7 +71,7 @@ function World({p}:{p:SceneProps}){
  {near.map(id=>id==='commons'&&p.level?null:<CityRegion key={id} detail={id==='nature'?!p.low:true} clock={clock} weather={p.weather} id={id} dusk={p.dusk} onStatus={status}/>)}
  {p.level&&<group position={relocation.commons}><CitadelInterior level={p.level}/></group>}
  <CityLife onStatus={status} clock={clock} region={p.selected==='atelier'?'town':p.selected??region} low={p.low}/>
- {!p.level&&<><ResearchFacility low={p.low} dusk={p.dusk} onStatus={status}/><group position={[80,76,-480]}><LandmarkAsset name="ring" low={p.low} dusk={p.dusk} onStatus={status}/></group><Landmarks p={p} dragged={dragged}/></>}
+ {!p.level&&<><ResearchFacility low={p.low} dusk={p.dusk} onStatus={status}/><group position={[80,76,-480]}><LandmarkAsset name="ring" animate={!p.paused&&!p.reduced&&(p.selected==='commons'||region==='commons')} low={p.low} dusk={p.dusk} onStatus={status}/></group><Landmarks p={p} dragged={dragged}/></>}
  {p.selected==='works'&&<group position={[-770,9,300]} scale={2}><group position={[-73,-4,-30]}><Crane step={p.crane}/></group></group>}
  {p.selected==='atelier'&&<group position={[145,20,150]} scale={3}><group position={[40,-5,-46]}><Optical value={p.prism}/></group></group>}
  </>}

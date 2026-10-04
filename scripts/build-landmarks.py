@@ -70,12 +70,12 @@ def export(name):
         bpy.ops.object.convert(target='MESH')
     groups={}
     for o in bpy.context.scene.objects:
-        if o.type=='MESH':groups.setdefault(o.data.materials[0].name,[]).append(o)
+        if o.type=='MESH':groups.setdefault((o.parent.name if o.parent else '',o.data.materials[0].name),[]).append(o)
     for objects in groups.values():
         bpy.ops.object.select_all(action='DESELECT')
         for o in objects:o.select_set(True)
         bpy.context.view_layer.objects.active=objects[0];bpy.ops.object.join()
-        objects[0].name=name+' / '+objects[0].data.materials[0].name
+        objects[0].name=(objects[0].parent.name if objects[0].parent else name)+' / '+objects[0].data.materials[0].name
     bpy.ops.export_scene.gltf(filepath=str(OUT/(name+'.glb')),export_format='GLB',export_yup=True,export_apply=True,export_texcoords=True,export_normals=True)
     tris=sum(len(o.data.loop_triangles) for o in bpy.context.scene.objects if o.type=='MESH')
     print('ASSET',name,'material batches',len(groups),'bytes',(OUT/(name+'.glb')).stat().st_size)
@@ -387,22 +387,20 @@ def court_sector(name,inner,outer,z,height,start,end,mat):
     faces.extend([(0,n+1,2*(n+1),3*(n+1)),(n,4*(n+1)-1,3*(n+1)-1,2*(n+1)-1)])
     return mesh(name,vertices,faces,mat)
 
-def star_plinth(name,radius,z,top_radius,height,mat):
-    vertices=[];faces=[];n=16
-    for r,h in [(radius,z),(top_radius,z+height)]:
-        for i in range(n):
-            a=i*math.tau/n;rr=r*(1 if i%2==0 else .78)
-            vertices.append((rr*math.cos(a),rr*math.sin(a),h))
-    for i in range(n):faces.append((i,(i+1)%n,(i+1)%n+n,i+n))
-    faces.extend([tuple(reversed(range(n))),tuple(range(n,2*n))])
-    obj=mesh(name,vertices,faces,mat,.035)
-    for polygon in obj.data.polygons:polygon.use_smooth=False
-    return obj
+# Every moving assembly pivots at the fixed nucleus, above the retained basin.
+ORBIT_HEIGHT=8.5
+
+def orbit_parent(name,objects):
+    pivot=bpy.data.objects.new(name,None);bpy.context.collection.objects.link(pivot)
+    pivot.location=(0,0,ORBIT_HEIGHT)
+    bpy.context.view_layer.update()
+    for obj in objects:
+        world=obj.matrix_world.copy();obj.parent=pivot;obj.matrix_world=world
 
 def orbit_point(radius,angle,tilt,turn,offset=0):
     x=radius*math.cos(angle);y=radius*math.sin(angle)
     yy=y*math.cos(tilt)-offset*math.sin(tilt)
-    return (x*math.cos(turn)-yy*math.sin(turn),x*math.sin(turn)+yy*math.cos(turn),9.4+y*math.sin(tilt)+offset*math.cos(tilt))
+    return (x*math.cos(turn)-yy*math.sin(turn),x*math.sin(turn)+yy*math.cos(turn),ORBIT_HEIGHT+y*math.sin(tilt)+offset*math.cos(tilt))
 
 def orbit_band(name,radius,width,tilt,turn,start=0,end=math.tau,mat=gold):
     vertices=[];faces=[];n=max(24,round((end-start)*24))
@@ -452,41 +450,14 @@ for quadrant in range(4):
     for name,r,w,length,z,h,mat in [('Rill surround',14.1,1.3,7.2,.31,.12,roof),('Inset rill water',14.1,.92,6.9,.38,.035,water)]:
         obj=box(name,(r*math.cos(angle),r*math.sin(angle),z),(length,w,h),mat,.025);obj.rotation_euler.z=angle
 
-# Shallow circular basin and a stepped, eight-point limestone / bronze pedestal.
+# The shallow basin remains; the sculpture has no pedestal or physical support.
 cylinder('Fountain apron',(0,0,.25),(0,0,.40),10.65,paving,128)
 annulus('Fountain ivory coping',9.8,10.25,.4,.32,roof)
 annulus('Fountain bronze lip',9.85,9.93,.71,.045,gold)
 cylinder('Fountain still water',(0,0,.41),(0,0,.54),9.8,water,128)
-star_plinth('Eight point lower bronze sill',7.25,.5,7.25,.22,gold)
-star_plinth('Splayed limestone pedestal',7.05,.72,5.3,1.7,roof)
-star_plinth('Upper bronze cornice',5.42,2.42,5.24,.25,gold)
-star_plinth('Inset pedestal water terrace',4.9,2.67,4.9,.055,water)
-star_plinth('Inner ivory tier',3.5,2.72,2.75,.85,roof)
-star_plinth('Inner bronze coping',2.89,3.57,2.7,.2,gold)
-for i in range(8):
-    a=i*math.tau/8
-    cylinder('Pedestal gold rib',(6.7*math.cos(a),6.7*math.sin(a),.86),(4.9*math.cos(a),4.9*math.sin(a),2.58),.11,gold,8)
-    # Faceted turquoise insets give the low stone base its own silhouette detail.
-    x,y=5.85*math.cos(a),5.85*math.sin(a)
-    bpy.ops.mesh.primitive_cone_add(vertices=4,radius1=.29,radius2=0,depth=.9,location=(x,y,1.1))
-    bpy.context.object.name='Pedestal aquamarine inlay';bpy.context.object.data.materials.append(energy)
-    # Small water arcs return into the basin, never into a pedestrian route.
-    angle=a+math.pi/8
-    points=[]
-    for k in range(25):
-        t=k/24;r=8.8-1.45*t
-        points.append((r*math.cos(angle),r*math.sin(angle),.55+3.8*t*(1-t)))
-    tube('Fountain water arc',points,.045,pearl)
-    tube('Basin ripple',[(7.35*math.cos(angle)+.32*math.cos(k*math.tau/40),7.35*math.sin(angle)+.32*math.sin(k*math.tau/40),.558) for k in range(41)],.012,energy)
-# Turned mechanical bearing and an open cradle physically support the armillary.
-ring_surface('Turned bronze bearing',[(0,3.76),(1.5,3.76),(1.65,4.0),(1.15,4.25),(.8,4.9),(1.45,5.05),(1.45,5.32),(.95,5.5),(0,5.5)],gold,True)
-for i in range(12):
-    a=i*math.tau/12
-    obj=box('Bearing gear tooth',(1.43*math.cos(a),1.43*math.sin(a),4.02),(.3,.26,.3),gold,.025);obj.rotation_euler.z=a
-for side in [-1,1]:
-    tube('Swept armillary cradle',[(side*.7,0,4.8),(side*1.2,0,5.8),(side*2.8,0,6.35),(side*3.8,0,7.15)],.16,gold)
 # Three tilted flat metal rings with fine aqua channels, plus the inner gimbal.
-for radius,width,tilt,turn in [(4.5,.34,math.radians(82),.2),(5.2,.32,math.radians(57),-.65),(6.35,.40,math.radians(24),.28),(2.25,.23,math.radians(73),-.4)]:
+for orbit,(radius,width,tilt,turn) in enumerate([(4.5,.34,math.radians(82),.2),(5.2,.32,math.radians(57),-.65),(6.35,.40,math.radians(24),.28),(2.25,.23,math.radians(73),-.4)]):
+    before=set(bpy.context.scene.objects)
     orbit_band('Armillary bronze orbit',radius,width,tilt,turn)
     tube('Orbit aqua channel',[orbit_point(radius,math.tau*i/160,tilt,turn,.112) for i in range(161)],.027,energy)
     for i in range(4):
@@ -496,18 +467,17 @@ for radius,width,tilt,turn in [(4.5,.34,math.radians(82),.2),(5.2,.32,math.radia
         obj=mesh('Orbit pointed fin',points,[(0,1,2,3,4)],gold)
         solid=obj.modifiers.new('Fin thickness','SOLIDIFY');solid.thickness=.1
         tube('Fin turquoise spine',[orbit_point(radius+.12,a,tilt,turn,.115),orbit_point(radius+.69,a,tilt,turn,.115)],.04,energy)
+    orbit_parent('Ring orbit '+str(orbit+1),set(bpy.context.scene.objects)-before)
 # Broken luminous ribbons suggest circulating water while retaining clear gaps
 # through the sculpture. Opaque geometry avoids overlapping transparency passes.
+before=set(bpy.context.scene.objects)
 for phase in [0,math.pi]:
     orbit_band('Suspended aquamarine ribbon',3.58,.62,1.2,.35,phase+.18,phase+2.7,energy)
     tube('Water ribbon bright edge',[orbit_point(3.8,phase+.18+2.52*i/96,1.2,.35,.12) for i in range(97)],.035,pearl)
-bpy.ops.mesh.primitive_uv_sphere_add(segments=40,ring_count=24,radius=1.28,location=(0,0,9.4))
+orbit_parent('Ring orbit 5',set(bpy.context.scene.objects)-before)
+bpy.ops.mesh.primitive_uv_sphere_add(segments=40,ring_count=24,radius=1.28,location=(0,0,ORBIT_HEIGHT))
 obj=bpy.context.object;obj.name='Luminous pearl nucleus';obj.data.materials.append(pearl)
 for polygon in obj.data.polygons:polygon.use_smooth=True
-for z,r in [(14.1,.6),(14.3,.85)]:annulus('Armillary crown collar',r*.55,r,z,.14,gold)
-for i in range(4):
-    a=i*math.pi/2
-    tube('Crown fleur',[(.68*math.cos(a),.68*math.sin(a),14.35),(.95*math.cos(a),.95*math.sin(a),14.75),(.38*math.cos(a),.38*math.sin(a),15.2),(0,0,15.65)],.09,gold)
 export('ring')
 
 fingerprint=hashlib.sha256(pathlib.Path(__file__).read_bytes()+(ROOT/'lib/world/landmark-spec.json').read_bytes()).hexdigest()[:12]

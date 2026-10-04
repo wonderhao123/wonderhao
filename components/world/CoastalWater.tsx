@@ -112,31 +112,14 @@ void main(){
  float shore=max(breaker*(.4+.6*flecks),contact*.25)*(1.-river);
  color=mix(color,foam,shore*.52);
  color=mix(color,color*.72,storm*.4);
- // Fixed submerged cube seen through the opaque sea, using a refracted box ray.
- // This bounded approximation preserves the six-plane silhouette in both tiers;
- // the surveyed bed masks the part buried in the trench rather than drawing it over rock.
- if(river<.5&&eye.y>0.&&distance(p,cube.xz)<cube.w*5.){
-  vec3 ray=refract(-eye,n,.75);
-  vec3 inv=1./(sign(ray)*max(abs(ray),vec3(.0001))+vec3(.000001));
-  vec3 a=(cube.xyz-vec3(cube.w)-waterPosition)*inv;
-  vec3 b=(cube.xyz+vec3(cube.w)-waterPosition)*inv;
-  vec3 nearHit=min(a,b),farHit=max(a,b);
-  float entry=max(max(nearHit.x,nearHit.y),nearHit.z);
-  float exitRay=min(min(farHit.x,farHit.y),farHit.z);
-  if(exitRay>max(0.,entry)){
-   vec3 hit=waterPosition+ray*max(0.,entry);
-   float bed=-.08-waterDepth(hit.xz);
-   if(hit.y>bed+.25){
-    float top=step(cube.y+cube.w-.05,hit.y);
-    float side=step(cube.w-.05,abs(hit.x-cube.x));
-    float face=mix(.64,.87,side);face=mix(face,1.,top);
-    float clarity=exp(-max(0.,-hit.y)*.045)*(1.-fresnel*.6);
-    vec3 transmitted=mix(vec3(.19,.43,.44),vec3(.75,1.7,1.6),cubeNight)*face;
-    color=mix(color,transmitted,clarity*mix(.18,.9,cubeNight));
-   }
-  }
-  vec2 halo=(p-cube.xz)/(cube.w*1.3);
-  color+=vec3(.025,.13,.14)*exp(-dot(halo,halo))*cubeNight*(1.-fresnel);
+ // Deep light diffuses through the water column: no solid face or box silhouette
+ // is drawn at the surface. The source stays fixed in world space in both tiers.
+ if(river<.5&&cubeNight>.0&&eye.y>0.){
+  float cover=max(0.,-cube.y-cube.w);
+  float spread=cube.w+cover*.85;
+  vec2 halo=(p-cube.xz)/spread;
+  float glow=exp(-dot(halo,halo)*1.4)*exp(-cover*.025);
+  color+=vec3(.13,.48,.46)*glow*cubeNight*(1.-fresnel)*smoothstep(8.,24.,depth);
  }
  gl_FragColor=vec4(color,1.);
  #include <tonemapping_fragment>

@@ -14,12 +14,14 @@ export function TheCube({dusk,underwater=false,low=false}:{dusk:boolean;underwat
   g.computeVertexNormals();return g;
  },[underwater,low]);
  useEffect(()=>()=>trench?.dispose(),[trench]);
+ // Only the diffuse water glow is visible from above; the solid belongs to the dive.
+ if(!underwater)return null;
  return <>
-  <mesh position={cubeSite.center} castShadow receiveShadow={!dusk}>
+  <mesh name="cube-solid" position={cubeSite.center} castShadow receiveShadow={!dusk}>
    <boxGeometry args={[cubeSite.size,cubeSite.size,cubeSite.size]}/>
    <meshStandardMaterial color="#e5eeeb" roughness={.2} metalness={.12} emissive="#b9f4ee" emissiveIntensity={dusk?1.15:0} />
   </mesh>
-  {trench&&<mesh geometry={trench} receiveShadow>
+  {trench&&<mesh name="cube-trench" geometry={trench} receiveShadow>
    <meshStandardMaterial color="#435556" roughness={.98} onBeforeCompile={shader=>{
     shader.uniforms.cubeGlow={value:dusk?1:0};
     shader.uniforms.cubeCentre={value:new THREE.Vector3(...cubeSite.center)};

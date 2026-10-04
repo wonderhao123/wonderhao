@@ -66,6 +66,7 @@ import { ProjectDirectory } from "@/components/portfolio/ProjectDirectory";
 import { ProjectContent } from "@/components/portfolio/ProjectContent";
 import { AboutContent } from "@/components/portfolio/AboutContent";
 const IslandScene = dynamic(() => import("./IslandScene"), { ssr: false });
+const DiveKitViewer = dynamic(() => import("./DiveKitViewer"), { ssr: false, loading: () => <div className="kit-loading-frame kit-fallback" role="status">Preparing your equipment…</div> });
 class SceneBoundary extends Component<
   { children: ReactNode; onFailure: () => void },
   { failed: boolean }
@@ -82,7 +83,7 @@ class SceneBoundary extends Component<
   }
 }
 type Panel =
-  "building" | "projects" | "pass" | "about" | "contact" | "settings" | "places" | null;
+  "building" | "projects" | "pass" | "about" | "contact" | "settings" | "places" | "kit" | null;
 export function WorldApp() {
   const [pass, setPass] = useState<Pass | null>(null);
   const passRef = useRef<Pass | null>(null);
@@ -544,7 +545,7 @@ export function WorldApp() {
             )}
             {activePlace.id === "commons" && !route.level && <button className="primary-button" onClick={() => {navigate({place:"commons",level:"b1"});setDetailsOpen(false)}}>Explore inside <ArrowRight size={16}/></button>}
             {activePlace.id === "dive" && <div className="dive-kit">
-              <svg viewBox="0 0 300 110" role="img" aria-label="Dive kit: mask, fins, wetsuit and air cylinder"><g fill="none" stroke="currentColor" strokeWidth="3"><rect x="18" y="25" width="62" height="28" rx="10"/><path d="M49 27v23M16 34H8v28h18M108 17l-8 68 18 12 13-70zM143 17l-7 68 19 12 7-71zM183 15l-15 21 12 8 7-9-3 58h17l4-29 4 29h17l-3-58 7 9 12-8-15-21-13 9h-17z"/><rect x="261" y="23" width="25" height="72" rx="10"/><path d="M273 23V12h12M261 50h25"/></g></svg>
+              {!modal && !first && <DiveKitViewer low={settings.quality === "low"} onExpand={()=>setPanel("kit")}/>}
               <p>{pass?.diveKit ? "Your dive kit is ready. The reef is yours to explore." : "A mask, fins, a wetsuit and an air cylinder. Collect your kit to open the underwater view."}</p>
               {!pass?.diveKit ? <button className="primary-button" onClick={() => {savePass(collectDiveKit);setNotice("Dive kit collected. Your World Pass is ready for the reef.")}}>Collect dive kit <ArrowRight size={16}/></button> : route.view !== "underwater" ? <button className="primary-button" onClick={() => navigate({place:"dive",scene:activeScene?.id==="cube"?"cube":activeScene?.id==="sphere"?"sphere":"reef",view:"underwater"})}>{activeScene?.id==="cube"?"Descend to The Cube":activeScene?.id==="sphere"?"Descend beneath The Sphere":"Enter underwater world"} <ArrowRight size={16}/></button> : <button className="secondary-button" onClick={() => navigate({place:"dive"})}>Return to shore</button>}
             </div>}
@@ -816,12 +817,14 @@ export function WorldApp() {
               contact: "Say hello",
               settings: "Make yourself at home",
               places: "Island directory",
+              kit: "Dive kit",
             }[panel]
           }
-          restoreFocus={panel==='building'?()=>document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${activeBuilding?.name}"]`)??document.querySelector<HTMLElement>('.world-viewport'):undefined}
+          restoreFocus={panel==='kit'?()=>document.querySelector<HTMLButtonElement>('.kit-expand'):panel==='building'?()=>document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${activeBuilding?.name}"]`)??document.querySelector<HTMLElement>('.world-viewport'):undefined}
           onClose={() => setPanel(null)}
-          wide={panel === "projects" || panel === "about"}
+          wide={panel === "projects" || panel === "about" || panel === "kit"}
         >
+          {panel === "kit" && <DiveKitViewer low={settings.quality === "low"} expanded/>}
           {panel === "building" && activeBuilding && <div className="building-projects"><p>Projects in {activeBuilding.name}. Select a case to read.</p>{activeBuilding.projects.map(slug=>{const p=projectBySlug(slug);return p&&<button className="scene-entry" key={slug} onClick={()=>openProject(p)}><strong>{p.title}</strong><span>{p.summary}</span><ArrowUpRight size={18}/></button>})}</div>}
           {panel === "projects" && (
             <ProjectDirectory

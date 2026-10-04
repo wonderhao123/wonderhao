@@ -14,16 +14,16 @@ function attribute(asset,index){
  assert.equal(accessor.componentType,5126);const start=asset.bin+(view.byteOffset??0)+(accessor.byteOffset??0),stride=view.byteStride??12;
  return Array.from({length:accessor.count},(_,i)=>[0,4,8].map(o=>asset.buffer.readFloatLE(start+i*stride+o)));
 }
-function materialWorldPoints(asset,name){
+function materialWorldPoints(asset,name,rootName){
  const points=[];
- function visit(index,parent){
-  const node=asset.doc.nodes[index];
+ function visit(index,parent,selected=!rootName){
+  const node=asset.doc.nodes[index];selected=selected||node.name===rootName;
   const local=node.matrix?new Matrix4().fromArray(node.matrix):new Matrix4().compose(new Vector3(...(node.translation??[0,0,0])),new Quaternion(...(node.rotation??[0,0,0,1])),new Vector3(...(node.scale??[1,1,1])));
   const world=parent.clone().multiply(local);
   if(node.mesh!==undefined)for(const p of asset.doc.meshes[node.mesh].primitives){
-   if(asset.doc.materials[p.material].name===name)for(const v of attribute(asset,p.attributes.POSITION))points.push(new Vector3(...v).applyMatrix4(world).toArray());
+   if(selected&&(!name||asset.doc.materials[p.material].name===name))for(const v of attribute(asset,p.attributes.POSITION))points.push(new Vector3(...v).applyMatrix4(world).toArray());
   }
-  for(const child of node.children??[])visit(child,world);
+  for(const child of node.children??[])visit(child,world,selected);
  }
  for(const node of asset.doc.scenes[asset.doc.scene??0].nodes)visit(node,new Matrix4());
  return points;
@@ -68,7 +68,9 @@ test('all hero assets have self-contained lower-detail variants and bounded mate
   const standard=glb(name),low=glb(name+'-low');
   assert.ok(low.buffer.length<standard.buffer.length*.8);
   for(const asset of [standard,low]){
-   assert.ok(asset.doc.meshes.length<=(name==='ring'?13:10));assert.ok(!asset.doc.images?.length);
+   // Ring adds two material batches for each of five independent moving assemblies.
+   assert.ok(asset.doc.meshes.length<=(name==='ring'?23:10));
+   assert.ok(asset.doc.materials.length<=(name==='ring'?13:10));assert.ok(!asset.doc.images?.length);
    assert.ok(asset.doc.buffers.every(b=>!b.uri));
    const transparent=asset.doc.materials.filter(m=>(m.alphaMode??'OPAQUE')!=='OPAQUE');
    if(name==='observatory'){assert.equal(transparent.length,1);assert.equal(transparent[0].name,'Pavilion clear glazing');assert.equal(transparent[0].alphaMode,'BLEND');}
@@ -116,11 +118,11 @@ test('Ring fountain stays centred, open and clear of the perimeter gardens in bo
    const extent=orbits.map(p=>p[axis]);
    assert.ok(Math.min(...extent)<-4&&Math.max(...extent)>4,'orbits surround the courtyard origin');
   }
-  const core=materialWorldPoints(asset,'Ring pearl light').filter(p=>p[1]>7.5&&p[1]<11&&Math.hypot(p[0],p[2])<2);
+  const core=materialWorldPoints(asset,'Ring pearl light').filter(p=>p[1]>7&&p[1]<10&&Math.hypot(p[0],p[2])<2);
   assert.ok(core.length>100,'luminous nucleus must survive simplification');
   for(const axis of [0,2])assert.ok(core.every(p=>Math.abs(p[axis])<1.4),'nucleus must be at courtyard centre');
   for(const axis of [0,2])assert.ok(Math.min(...core.map(p=>p[axis]))<-1.2&&Math.max(...core.map(p=>p[axis]))>1.2,'nucleus spans both sides of the origin');
-  assert.ok(core.every(p=>Math.abs(p[1]-9.4)<1.4),'nucleus stays within its open gimbal');
+  assert.ok(core.every(p=>Math.abs(p[1]-8.5)<1.4),'nucleus stays within its open gimbal');
   const energy=materialWorldPoints(asset,'Ring aquamarine energy').filter(p=>p[1]>6);
   assert.ok(energy.length>200,'open water ribbons and orbit channels remain in lightweight view');
   for(const mat of ['Ring canopy 0','Ring canopy 1','Ring tree bark','Ring meadow']){
@@ -135,6 +137,24 @@ test('Ring fountain stays centred, open and clear of the perimeter gardens in bo
  }
 });
 
+
+test('Ring floating assemblies share the nucleus pivot and clear the basin throughout rotation',()=>{
+ for(const variant of ['ring','ring-low']){
+  const asset=glb(variant);
+  const pivots=asset.doc.nodes.filter(n=>/^Ring orbit [1-5]$/.test(n.name));
+  assert.equal(pivots.length,5,'four independent metal rings and one paired energy ribbon');
+  for(const pivot of pivots){
+   assert.deepEqual(pivot.translation,[0,8.5,0]);
+   const points=materialWorldPoints(asset,null,pivot.name);
+   assert.ok(points.length>100,'each assembly survives export and LOD');
+   assert.ok(points.every(p=>Math.hypot(p[0],p[1]-8.5,p[2])<7.4),'full rotation stays at least 0.56m above the basin');
+  }
+  for(const mat of ['Ring champagne bronze','Ring porcelain crown','Ring reflecting water']){
+   const points=materialWorldPoints(asset,mat).filter(p=>Math.hypot(p[0],p[2])<7.3&&p[1]>.75&&p[1]<1.1);
+   assert.equal(points.length,0,'no pedestal or support underneath the floating assemblies');
+  }
+ }
+});
 
 test('glass pavilion retains a clear spherical crown, continuous louvers and occupied galleries in both qualities',()=>{
  for(const name of ['observatory','observatory-low']){
