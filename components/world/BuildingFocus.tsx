@@ -28,10 +28,11 @@ export function BuildingFocus({p,dragged}:{p:SceneProps;dragged:React.RefObject<
   {b.volumes.map((v,i)=><mesh key={i} position={v.position.map((n,j)=>n-b.position[j]) as [number,number,number]} onClick={e=>select(b.id,e)} onPointerOver={e=>{e.stopPropagation();if(p.paused||e.buttons||e.pointerType==='touch')return;clear();timer.current=setTimeout(()=>setHover(b.id),70);gl.domElement.style.cursor='pointer'}} onPointerOut={()=>{leave();gl.domElement.style.cursor=''}}>
    {b.id==='research'?<sphereGeometry args={[35,24,16]}/>:<boxGeometry args={v.size}/>}<meshBasicMaterial transparent opacity={0} depthWrite={false}/>
   </mesh>)}
-  {focused===b.id&&!p.paused&&<Html center calculatePosition={(object,camera,size)=>{const point=object.getWorldPosition(new Vector3()).project(camera);return [MathUtils.clamp((point.x+1)*size.width/2,144,size.width-144),MathUtils.clamp((1-point.y)*size.height/2,240,size.height-145)]}} style={{transform:"translate(-50%, -100%)"}} position={[0,b.size[1]/2+6,0]} zIndexRange={[22,20]}><div className="building-focus-card" data-card-surface="" onPointerEnter={clear} onPointerLeave={leave} onPointerDown={e=>e.stopPropagation()}>
-   <small>{projectBySlug(b.projects[0])?.category} / {b.projects.length} {b.projects.length===1?'project':'projects'}</small><strong>{b.name}</strong>
-   <p>{projectBySlug(b.projects[0])?.summary}</p>
-   <button autoFocus={!!p.focusedBuilding} aria-label={`Explore ${b.name}`} onFocus={clear} onClick={()=>{p.onFocusBuilding(b.id);p.onBuilding(b.id)}}>Explore projects ↗</button>
+  {focused===b.id&&!p.paused&&<Html center calculatePosition={(object,camera,size)=>{const point=object.getWorldPosition(new Vector3()).project(camera);return [MathUtils.clamp((point.x+1)*size.width/2,152,size.width-152),MathUtils.clamp((1-point.y)*size.height/2,Math.min(350,size.height-145),size.height-145)]}} style={{transform:"translate(-50%, -100%)"}} position={[0,b.size[1]/2+6,0]} zIndexRange={[22,20]}><div className="building-focus-card" data-card-surface="" onPointerEnter={clear} onPointerLeave={leave} onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()} onWheel={e=>e.stopPropagation()}>
+   <small>{b.programme}</small><strong>{b.name}</strong>
+   <p>{b.description}</p>
+   <ul aria-label="Projects in this building">{b.projects.map(slug=><li key={slug}>{projectBySlug(slug)?.title}</li>)}</ul>
+   <button autoFocus={!!p.focusedBuilding} aria-label={`Explore ${b.name}`} onFocus={clear} onClick={()=>{p.onFocusBuilding(b.id);p.onBuilding(b.id)}}>{b.projects.length===1?'Read project':`View ${b.projects.length} projects`} ↗</button>
   </div></Html>}
  </group>)}</>;
 }

@@ -52,6 +52,8 @@ components:
 
 ## Creative north star
 
+A portfolio whose real projects give its buildings a purpose. Visitors discover what Carl has made through the city: commerce in a trading house, knowledge tools in a library, campus software in a campus, and design work in a studio and waterfront arcade. Project discovery and readable case studies lead the experience. World details support that work; architectural spectacle alone is not the portfolio’s goal.
+
 A sunlit island city built around a circular glass headquarters, landscaped inner garden and connected neighbourhoods. VOGT informs the continuous urban fabric and legible infrastructure; Meatopia informs coastal depth, destination-led exploration and layered scenery. White architecture, teal glazing, green woodland and sandy shorelines make the world readable. The original black/cyan pass anchors the restrained dark navigation and content surfaces. Reference sites supply no copied assets or branding.
 
 ## Register and content
@@ -130,7 +132,7 @@ The next-spec revision supersedes the compact 760 × 680 m peninsula and persist
 
 `city-plan.ts` owns parcel elevations, 55 connected roads, mountain nodes and the terrain survey. `city-architecture.ts` uses a shared wall/eave construction helper for pitched buildings. `city-buildings.ts` derives project hit volumes from tagged structural geometry. `MountainPlaces.tsx` owns the editable continuous spiral ramp, diagrid, rails, radial joists and research cabins. All assets remain original deterministic geometry; no third-party model or texture was imported.
 
-Resting views have no project label field. Mouse hover and directory/keyboard focus expose one small card; touch first selects, then the card opens cases. Batched geometry retains per-part building ownership. MSAA alpha coverage fades other architecture and foliage without transparent sorting or per-building draw calls; terrain, roads and primary quay remain spatial anchors. The existing dialog, URL/history and focus restoration remain canonical.
+Resting views have no project label field. Mouse hover and directory/keyboard focus expose one small card; touch first selects, then the card opens cases. Each card explains the building’s programme and names every project inside. The island directory leads with all eight project buildings and thirteen projects, followed by scenery destinations. Building programmes live with the spatial mappings; case titles and text retain their single content owner. Batched geometry retains per-part building ownership. MSAA alpha coverage fades other architecture and foliage without transparent sorting or per-building draw calls; terrain, roads and primary quay remain spatial anchors. The existing dialog, URL/history and focus restoration remain canonical.
 
 Night uses stable room-cell occupancy, restrained warm/neutral glazing, a reusable world-space illumination field aligned to road lamps, and two fixed non-shadowed point lights. Fine woodland crowns use a shared low-detail crown in the distance; quality modes preserve all parcels and ridges. Static shadows update at a bounded cadence or on camera movement.
 

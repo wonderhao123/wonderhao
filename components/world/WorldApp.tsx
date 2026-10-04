@@ -103,6 +103,7 @@ export function WorldApp() {
   const [rotateMode,setRotateMode]=useState(false);
   const [returnTarget,setReturnTarget]=useState<string>();
   const [focusedBuilding,setFocusedBuilding]=useState<string>();
+  const buildingToFocus=useRef<string|undefined>(undefined);
   const [buildingId,setBuildingId]=useState<string>();
   const [admitted,setAdmitted]=useState(false);
   const activeBuilding=projectBuildings.find(b=>b.id===buildingId);
@@ -280,6 +281,26 @@ export function WorldApp() {
     setPanel(null);
     savePass((v) => stampPass(v, p.place));
   };
+  const locateBuilding = (id: string) => {
+    buildingToFocus.current=id;
+    navigate({});
+    setPanel(null);
+    setFocusedBuilding(id);
+    setCommand(c=>({id:c.id+1,type:"building",building:id}));
+  };
+  const openBuilding = (id: string) => {
+    const building = projectBuildings.find(b=>b.id===id);
+    if (!building) return;
+    buildingToFocus.current=undefined;
+    setReturnTarget(failed ? "directory" : id);
+    if (building.projects.length === 1) {
+      const project = projectBySlug(building.projects[0]);
+      if (project) openProject(project);
+    } else {
+      setBuildingId(id);
+      setPanel("building");
+    }
+  };
   const enterScene = (id: string) => {
     const scene = sceneById(id);
     if (!scene) return;
@@ -297,6 +318,19 @@ export function WorldApp() {
       "",
       window.location.href,
     );
+    const building=projectBuildings.find(b=>b.id===buildingToFocus.current);
+    if(building&&Math.hypot(...snapshot.target.map((v,i)=>v-building.position[i]))<.2){
+      // Html can be hidden behind the camera during travel. Focus after its
+      // projection has updated, rather than losing focus on an invisible card.
+      requestAnimationFrame(()=>{
+        if(buildingToFocus.current!==building.id)return;
+        const target=document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${building.name}"]`);
+        if(target?.getClientRects().length&&!target.closest('[inert]')){
+          target.focus();
+          if(document.activeElement===target)buildingToFocus.current=undefined;
+        }
+      });
+    }
   }, []);
   const onReady = useCallback(() => setReadyKey(preparationKey), [preparationKey]);
   const onFailure = useCallback(() => {
@@ -401,7 +435,7 @@ export function WorldApp() {
               rotateMode={rotateMode}
               focusedBuilding={focusedBuilding}
               onFocusBuilding={setFocusedBuilding}
-              onBuilding={id=>{setReturnTarget(id);const b=projectBuildings.find(v=>v.id===id);if(!b)return;if(b.projects.length===1){const project=projectBySlug(b.projects[0]);if(project)openProject(project)}else{setBuildingId(id);setPanel("building")}}}
+              onBuilding={openBuilding}
               weather={settings.weather}
               level={route.level}
               underwater={route.view === "underwater" && !!pass?.diveKit}
@@ -480,7 +514,7 @@ export function WorldApp() {
           )}
         </nav>
         <div className="city-work-link"><button onClick={()=>setPanel("projects")}><BookOpen size={16}/> Browse projects</button><button onClick={()=>setPanel("contact")}>Contact ↗</button></div>
-        <button className="city-directory" onClick={() => setPanel("places")} aria-label="Island directory"><Compass size={17}/> Explore island <ArrowUpRight size={14}/></button>
+        <button className="city-directory" onClick={() => setPanel("places")} aria-label="Island directory"><Compass size={17}/> Explore my work <ArrowUpRight size={14}/></button>
         {route.view === "underwater" && pass?.diveKit && <button className="city-return" onClick={() => navigate({place:"dive"})}>↑ Return to shore</button>}
         {route.level && <div className="city-levels" data-card-surface="" aria-label="Citadel levels">{(["exterior","b1","b2"] as const).map(level => <button key={level} aria-pressed={level === route.level} onClick={() => {navigate({place:"commons", ...(level !== "exterior" ? {level} : {})});setDetailsOpen(false)}}>{level === "exterior" ? "Back outside" : level.toUpperCase()}</button>)}</div>}
         {Object.values(regionStates).includes("error") && <div className="city-load" data-card-surface="" role="alert">A district could not load. <button onClick={() => window.dispatchEvent(new Event("world-retry-region"))}>Retry</button><button onClick={() => {navigate({});camera("home")}}>Return to town</button><Link href="/work">Browse projects</Link></div>}
@@ -820,16 +854,16 @@ export function WorldApp() {
               kit: "Dive kit",
             }[panel]
           }
-          restoreFocus={panel==='kit'?()=>document.querySelector<HTMLButtonElement>('.kit-expand'):panel==='building'?()=>document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${activeBuilding?.name}"]`)??document.querySelector<HTMLElement>('.world-viewport'):undefined}
+          restoreFocus={panel==='kit'?()=>document.querySelector<HTMLButtonElement>('.kit-expand'):panel==='building'?()=>document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${activeBuilding?.name}"]`)??document.querySelector<HTMLElement>('.world-viewport'):panel==='places'||panel==='projects'?()=>{const id=buildingToFocus.current;return id?document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${projectBuildings.find(b=>b.id===id)?.name}"]`):null}:undefined}
           onClose={() => setPanel(null)}
           wide={panel === "projects" || panel === "about" || panel === "kit"}
         >
           {panel === "kit" && <DiveKitViewer low={settings.quality === "low"} expanded/>}
-          {panel === "building" && activeBuilding && <div className="building-projects"><p>Projects in {activeBuilding.name}. Select a case to read.</p>{activeBuilding.projects.map(slug=>{const p=projectBySlug(slug);return p&&<button className="scene-entry" key={slug} onClick={()=>openProject(p)}><strong>{p.title}</strong><span>{p.summary}</span><ArrowUpRight size={18}/></button>})}</div>}
+          {panel === "building" && activeBuilding && <div className="building-projects"><span className="eyebrow">{activeBuilding.programme}</span><p>{activeBuilding.description}</p>{activeBuilding.projects.map(slug=>{const p=projectBySlug(slug);return p&&<button className="scene-entry" key={slug} onClick={()=>openProject(p)}><strong>{p.title}</strong><span>{p.summary}</span><ArrowUpRight size={18}/></button>})}</div>}
           {panel === "projects" && (
             <ProjectDirectory
               onProject={openProject}
-              onLocate={p=>{const b=projectBuildings.find(v=>v.projects.includes(p.slug));if(b){navigate({});setPanel(null);setFocusedBuilding(b.id);setCommand(c=>({id:c.id+1,type:'building',building:b.id}))}}}
+              onLocate={failed?undefined:p=>{const b=projectBuildings.find(v=>v.projects.includes(p.slug));if(b)locateBuilding(b.id)}}
             />
           )}{" "}
           {panel === "pass" && pass && (
@@ -844,8 +878,15 @@ export function WorldApp() {
           {panel === "contact" && <AboutContent contactOnly />}
           {panel === "places" && (
             <div className="place-directory">
-              <span className="eyebrow">CITY, COAST & MOUNTAIN PATHS.</span>
-              <h2>Where to?</h2>
+              <span className="eyebrow">A PORTFOLIO, BUILT INTO A CITY</span>
+              <h2>My work lives here.</h2>
+              <p className="building-directory-intro">Explore {projectBuildings.reduce((count,b)=>count+b.projects.length,0)} projects across {projectBuildings.length} buildings. Choose a building to {failed?"read":"find"} the work inside.</p>
+              {projectBuildings.map(b=><button key={b.id} type="button" className="building-directory-entry" aria-label={`${failed?'Read projects in':'Visit'} ${b.name}`} onClick={()=>failed?openBuilding(b.id):locateBuilding(b.id)}>
+                <BookOpen size={18} aria-hidden="true"/>
+                <div><span className="eyebrow">{b.programme}</span><strong>{b.name}</strong><p>{b.projects.map(slug=>projectBySlug(slug)?.title).join(' · ')}</p></div>
+                <ChevronRight size={18} aria-hidden="true"/>
+              </button>)}
+              <h3 className="building-directory-surroundings">Around the island</h3>
               {places.map((p) => (
                 <button
                   key={p.id}

@@ -4408,7 +4408,10 @@ html {
 
 /* The city owns the resting view; one focus card follows deliberate attention. */
 .building-focus-card {
-  width: 252px;
+  width: 280px;
+  max-height: min(340px, calc(100dvh - 170px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 16px;
   text-align: left;
   color: var(--ink);
@@ -4434,6 +4437,7 @@ html {
 }
 
 .building-focus-card button {
+  min-height: 44px;
   color: var(--accent);
   padding: 8px 0;
   cursor: pointer;
@@ -4441,6 +4445,49 @@ html {
 
 .building-focus-card button:hover {
   color: white;
+}
+
+.building-focus-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+
+.building-focus-card li {
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.building-directory-intro {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.building-directory-entry > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.building-directory-entry > svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.building-directory-entry .eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  line-height: 1.5;
+}
+
+.building-directory-surroundings {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 36px 0 14px;
 }
 
 .world-reveal {

@@ -56,6 +56,8 @@ Transport is deterministic choreography with disjoint runway/taxi time slots and
 
 ## Semantic building navigation
 
+The island directory lists all project buildings before scenery destinations. Every building card names all its projects and explains their relationship to that space. Directory selection locates and focuses the building; in postcard mode it opens the same project chooser or single case directly. Project titles and case text continue to come from `content.ts`.
+
 `city-buildings.ts` maps every real project once. A multi-case building opens a native chooser dialog; a single-case building opens the case immediately. Both use `content.ts`, never duplicated case text. Opening a case preserves the current camera; background input is disabled while the dialog is open. Closing restores the saved target/position and the building trigger (or direct directory control). Locate on island resolves the building mapping, not the legacy peripheral district. Surface drag requires more than six CSS pixels to suppress click; pointer capture and cancel end the gesture. Damping completes before the stable history snapshot is saved. Switching mode, opening a dialog and starting a new gesture clear residual inertia while preserving the current pose. Main structural volumes and terrain bound camera movement without changing pan height. Two-finger touch uses pinch plus horizontal pan.
 
 The current brief is the authority for the deliberate changes from orbit-first and first-visit-only admission. Existing category filters, direct routes, weather, contact identity and pass persistence remain. Weather defaults to sunny; explicit stored Auto remains supported.
