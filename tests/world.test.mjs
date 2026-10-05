@@ -178,13 +178,31 @@ test('three enclosing ridges leave the bay and airfield corridor open',()=>{
  assert.ok(terrainHeight(0,800)<0);
  for(let x=400;x<2000;x+=40)assert.ok(Math.abs(terrainHeight(x,-Math.max(0,Math.min(80,(x-720)/6))))<30);
 });
-const {resourcesReady}=await import(url(compile('../lib/world/scene-readiness.ts')));
+const {resourcesReady,sceneResources,preparationProgress,advanceLoadingProgress}=await import(url(compile('../lib/world/scene-readiness.ts')));
 test('the reveal requires every committed resource, never any-ready or an empty set',()=>{
  const required=['terrain','town','water','ring'];
  assert.equal(resourcesReady(required,{town:'ready'}),false);
  assert.equal(resourcesReady([],{}),false);
  const states=Object.fromEntries(required.map(id=>[id,'ready']));assert.equal(resourcesReady(required,states),true);
  for(const bad of ['idle','loading','error'])for(const id of required)assert.equal(resourcesReady(required,{...states,[id]:bad}),false);
+});
+
+test('loading reaches 100 only after every view resource, page asset and GPU barrier succeeds',()=>{
+ for(const requiredScene of [sceneResources(),sceneResources(false,'b1'),sceneResources(false,'b2'),sceneResources(true)]){
+  const required=[...requiredScene,'gpu','fonts','document','logo'];
+  const states=Object.fromEntries(required.map(id=>[id,'ready']));
+  assert.equal(preparationProgress(required,{},false),0);
+  assert.equal(preparationProgress(required,states,true),100);
+  assert.ok(preparationProgress(required,states,false)<100,'GPU callback has not committed');
+  for(const id of required)for(const bad of ['loading','error','idle',undefined]){
+   assert.ok(preparationProgress(required,{...states,[id]:bad},true)<100,`${id} ${bad} cannot complete`);
+  }
+ }
+ assert.equal(preparationProgress([],{},true),0);
+ assert.deepEqual(sceneResources(true),['habitat','observatory']);
+ assert.ok(!sceneResources(false,'b1').some(id=>['commons','ring','observatory'].includes(id)));
+ // A surface completion must not satisfy a newly mounted underwater scene.
+ assert.ok(preparationProgress(sceneResources(true),Object.fromEntries(sceneResources().map(id=>[id,'ready'])),false)<100);
 });
 
 test('mountain road cuts blend continuously and support both new access paths',()=>{
@@ -277,4 +295,20 @@ test('Sphere promenade piles reach the surveyed bed and underwater visit remains
  }
  const route=resolveWorldRoute('?scene=sphere&view=underwater');
  assert.equal(route.place,'dive');assert.equal(route.scene,'sphere');assert.equal(route.view,'underwater');assert.equal(route.unknown,false);
+});
+
+
+test('loading interpolation never outruns real work or jumps after a blocked frame',()=>{
+ let value=0;
+ for(let i=0;i<600&&value<85;i++){
+  const next=advanceLoadingProgress(value,85,16.67);
+  assert.ok(next>=value&&next<=85);
+  assert.ok(next-value<=.834);
+  value=next;
+ }
+ assert.equal(value,85);
+ assert.ok(advanceLoadingProgress(85,100,5000)<=86.6);
+ assert.equal(advanceLoadingProgress(85,85,5000),85);
+ assert.equal(advanceLoadingProgress(99.9,100,16.67),100);
+ assert.equal(advanceLoadingProgress(100,80,16.67),80);
 });

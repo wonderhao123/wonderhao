@@ -24,7 +24,7 @@ import {CityNight} from './CityNight';
 import {BuildingFocus} from './BuildingFocus';
 import {ScenePreparation} from './ScenePreparation';
 import {TheCube} from './TheCube';
-import {surfaceResources} from '@/lib/world/scene-readiness';
+import {sceneResources} from '@/lib/world/scene-readiness';
 import {Crane,Optical} from './WorldDevices';
 export type CameraSnapshot={version:3;position:[number,number,number];target:[number,number,number];zoom:number;view:string};
 export type CameraAction={id:number;type:'mountain'|'building'|'home'|'overview'|'zoom-in'|'zoom-out'|'rotate'|'tilt-up'|'tilt-down'|'pan-left'|'pan-right'|'pan-up'|'pan-down'|'focus'|'restore';building?:string;snapshot?:CameraSnapshot;place?:PlaceId;instant?:boolean;detail?:boolean};
@@ -75,7 +75,7 @@ function World({p}:{p:SceneProps}){
  {p.selected==='works'&&<group position={[-770,9,300]} scale={2}><group position={[-73,-4,-30]}><Crane step={p.crane}/></group></group>}
  {p.selected==='atelier'&&<group position={[145,20,150]} scale={3}><group position={[40,-5,-46]}><Optical value={p.prism}/></group></group>}
  </>}
- <ScenePreparation states={states} required={p.underwater?['habitat','observatory']:p.level?surfaceResources.filter(id=>id!=='commons'||!p.level).filter(id=>id!=='ring'&&id!=='observatory'):surfaceResources} onReady={onReady} onStage={status}/>
+ <ScenePreparation states={states} required={sceneResources(p.underwater,p.level)} onReady={onReady} onStage={status}/>
  <SceneFinish prepared={states.gpu==='compiled'||states.gpu==='ready'} low={p.low} degraded={false} paused={p.paused||p.reduced||p.low} onMetrics={p.onMetrics}/>
  </>;
 }

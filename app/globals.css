@@ -750,27 +750,6 @@ a svg {
   flex: none;
 }
 
-.initial-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 20px;
-  background: #070c14f0;
-  z-index: 40;
-}
-
-.initial-loading p {
-  font-size: 25px;
-}
-
-.initial-loading a {
-  font-size: 12px;
-  text-decoration: underline;
-}
-
 .is-dusk .world-interface {
   color: #eff0df;
 }
@@ -4490,75 +4469,95 @@ html {
   margin: 36px 0 14px;
 }
 
-.world-reveal {
+/* The supplied loading.gif: monochrome, segmented, exploded perspective dial. */
+.world-loading {
+  --loading-black: #000;
+  --loading-white: #fff;
   position: fixed;
   inset: 0;
-  z-index: 35;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 22px;
-  padding: 24px;
-  text-align: center;
-  background: #0b1119;
+  z-index: 110;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  background: var(--loading-black);
+  color: var(--loading-white);
+  overflow: auto;
 }
-
-.world-reveal h2 {
-  font-size: clamp(24px, 4vw, 42px);
-  font-weight: 400;
-  margin: 0;
+.world-loading-meter { width: min(800px, 100vw, 120svh); }
+.loading-dial { position: relative; width: 100%; aspect-ratio: 4 / 3; }
+.loading-dial svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.loading-dial-assembly, .loading-dial-readout { position: absolute; inset: 0; }
+.loading-dial-layer { position: absolute; width: 62.5%; aspect-ratio: 1; left: 18.75%; top: -4.166667%; }
+.loading-dial-ticks { position: absolute; inset: 0; }
+.loading-dial-spin { width: 100%; height: 100%; }
+/* Only these small, short-lived HTML layers are promoted; SVG paths stay still. */
+.loading-dial-assembly, .loading-dial-layer, .loading-dial-readout,
+.loading-dial-ticks, .loading-dial-spin { will-change: transform; }
+.loading-dial-assembly { transform-origin: center; animation: dial-assemble 1.89s ease-in-out both; }
+.loading-dial-top { transform: scaleY(.26); animation: dial-tip 1.89s ease-out both; }
+.loading-dial-middle { transform: translateY(14%) scaleY(.30); animation: dial-middle 1.89s ease-out both; }
+.loading-dial-lower { transform: translateY(25%) scaleY(.36); animation: dial-lower 1.89s ease-out both; }
+.loading-dial-base { transform: translateY(37%) scaleY(.47); animation: dial-base 1.89s ease-out both; }
+.loading-dial-ticks { animation: dial-turn 9s linear infinite; }
+.loading-dial-middle .loading-dial-spin { animation: dial-turn 7s linear infinite reverse; }
+.loading-dial-lower .loading-dial-spin { animation: dial-turn 11s linear infinite; }
+.loading-dial-number { fill: #fff; font: italic 700 80px Arial, sans-serif; letter-spacing: -4px; }
+.loading-dial-percent { fill: #aaa; font: 22px Arial, sans-serif; }
+.loading-dial-readout { transform-origin: 50% 37.5%; animation: dial-readout 1.89s ease-out both; }
+.loading-dial-exit { transform-origin: center; }
+.world-loading-status { min-height: 24px; margin: -28px 24px 0; text-align: center; font-size: 13px; color: #b5b5b5; }
+.world-loading-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px; padding: 16px 24px 24px; }
+.world-loading-actions :is(a, button) { color: #aaa; font-size: 12px; padding: 12px; min-height: 44px; background: none; border: 0; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.world-loading-actions :is(a, button):hover { color: #fff; }
+.world-loading-actions :is(a, button):active { color: #ccc; }
+.world-loading[data-error="true"] .loading-dial-ticks,
+.world-loading[data-error="true"] .loading-dial-middle .loading-dial-spin,
+.world-loading[data-error="true"] .loading-dial-lower .loading-dial-spin { animation-play-state: paused; }
+.world-loading[data-exiting="true"] .loading-dial-exit { animation: dial-dismiss 400ms ease-in both; }
+.world-loading[data-exiting="true"] :is(.world-loading-status, .world-loading-actions) { opacity: 0; transition: opacity 200ms; }
+.world-app[data-world-ready="false"] .world-viewport { opacity: 0; }
+@keyframes dial-turn { to { transform: rotate(360deg); } }
+@keyframes dial-dismiss {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(.04); opacity: 0; }
 }
-
-.world-reveal p {
-  color: var(--muted);
-  max-width: 420px;
-  line-height: 1.7;
+@keyframes dial-assemble {
+  0% { transform: scale(.04); opacity: 0; }
+  12% { opacity: 1; }
+  42%, 100% { transform: scale(1); opacity: 1; }
 }
-
-.world-reveal>div:last-child {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
+@keyframes dial-tip {
+  0%, 18% { transform: rotate(-35deg) scaleY(1); }
+  65%, 100% { transform: rotate(0) scaleY(.26); }
 }
-
-.reveal-orbit {
-  width: 84px;
-  height: 84px;
-  border: 1px solid #67e8f933;
-  border-top-color: #67e8f9;
-  border-radius: 50%;
-  animation: reveal-turn 4s linear infinite;
+@keyframes dial-middle {
+  0%, 20% { transform: rotate(-35deg) scaleY(1); }
+  45% { transform: rotate(62deg) scaleY(.4); }
+  78%, 100% { transform: translateY(14%) scaleY(.30); }
 }
-
-@keyframes reveal-turn {
-  to {
-    transform: rotate(360deg);
-  }
+@keyframes dial-lower {
+  0%, 20% { transform: rotate(-35deg) scaleY(1); }
+  50% { transform: rotate(-30deg) scaleY(.25); }
+  85%, 100% { transform: translateY(25%) scaleY(.36); }
 }
-
-[data-reduced-motion="true"] .reveal-orbit {
-  animation: none;
+@keyframes dial-base {
+  0%, 25% { transform: rotate(-35deg) scaleY(1); }
+  88%, 100% { transform: translateY(37%) scaleY(.47); }
 }
-
-@media (prefers-reduced-motion:reduce) {
-  .reveal-orbit {
-    animation: none;
-  }
+@keyframes dial-readout {
+  0%, 20% { transform: translateY(5%) rotate(-35deg) scale(.8); }
+  72%, 100% { transform: none; }
 }
-
-.world-app[data-world-ready="false"] .world-viewport {
-  opacity: 0;
+[data-reduced-motion="true"] .world-loading .loading-dial * { animation: none; transition: none; }
+[data-reduced-motion="true"] .world-loading[data-exiting="true"] .loading-dial-exit { animation: dial-fade 150ms linear both; }
+@keyframes dial-fade { to { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .world-loading .loading-dial * { animation: none; transition: none; }
+  .world-loading[data-exiting="true"] .loading-dial-exit { animation: dial-fade 150ms linear both; }
 }
-
-.world-app[data-world-ready="false"] .arrival-screen {
-  background-color: #0b1119;
-}
-
-.world-app[data-world-ready="false"] .world-reveal .reveal-orbit {
-  will-change: transform;
+@media (max-height: 480px) {
+  .world-loading-meter { width: min(560px, 80vw); }
+  .world-loading-status { margin-top: -50px; }
 }
 
 /* Arrival is a single personal object, with its invitation on the card. */

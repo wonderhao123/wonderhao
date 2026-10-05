@@ -62,6 +62,8 @@ import {projectBuildings} from "@/lib/world/city-buildings";
 import type { CameraAction, CameraSnapshot } from "./IslandScene";
 import { Dialog } from "./Dialog";
 import { WorldPass } from "./WorldPass";
+import { WorldLoading } from "./WorldLoading";
+import { sceneResources } from "@/lib/world/scene-readiness";
 import { ProjectDirectory } from "@/components/portfolio/ProjectDirectory";
 import { ProjectContent } from "@/components/portfolio/ProjectContent";
 import { AboutContent } from "@/components/portfolio/AboutContent";
@@ -91,8 +93,6 @@ export function WorldApp() {
   const [storageAvailable, setStorageAvailable] = useState(true);
   const [systemReduced, setSystemReduced] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
-  const [regionStates, setRegionStates] = useState<Record<string,string>>({});
-  const onRegionStatus = useCallback((id:string, state:string) => setRegionStates(old => old[id] === state ? old : {...old, [id]:state}), []);
   const onExplore = useCallback(() => setDetailsOpen(false), []);
   const [hovered, setHovered] = useState<PlaceId | undefined>();
   const [route, setRoute] = useState<Route>({});
@@ -109,8 +109,21 @@ export function WorldApp() {
   const activeBuilding=projectBuildings.find(b=>b.id===buildingId);
   const [readyKey, setReadyKey] = useState('');
   const [retry,setRetry]=useState(0);
-  const preparationKey=`${settings.quality}:${route.view??'surface'}:${route.level??'exterior'}:${retry}`;
+  const preparationMode=`${settings.quality}:${route.view??'surface'}:${route.level??'exterior'}:${retry}`;
+  const [generation,setGeneration]=useState({mode:preparationMode,id:0});
+  // Returning to a previous view still mounts a new renderer; its old ready flag
+  // must not reveal it, including when the intervening view never finished.
+  if(generation.mode!==preparationMode)setGeneration({mode:preparationMode,id:generation.id+1});
+  const preparationKey=`${preparationMode}:${generation.id}`;
   const ready=readyKey===preparationKey;
+  const [revealedKey,setRevealedKey]=useState('');
+  const [preparation,setPreparation]=useState<{key:string;states:Record<string,string>}>({key:'',states:{}});
+  const regionStates=preparation.key===preparationKey?preparation.states:{};
+  const onRegionStatus=useCallback((id:string,state:string)=>setPreparation(old=>{
+    const states=old.key===preparationKey?old.states:{};
+    return states[id]===state?old:{key:preparationKey,states:{...states,[id]:state}};
+  }),[preparationKey]);
+  const onLoadingComplete=useCallback(()=>setRevealedKey(preparationKey),[preparationKey]);
   const [failed, setFailed] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [notice, setNotice] = useState("");
@@ -124,7 +137,8 @@ export function WorldApp() {
   const project = projectBySlug(route.project);
   const activeScene = sceneById(route.scene);
   const modal = !!panel || !!project;
-  const paused = first || modal || hidden;
+  const loading = !failed && revealedKey !== preparationKey;
+  const paused = first || modal || hidden || loading;
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       // R3F configures its renderer asynchronously; detect unsupported contexts
@@ -405,10 +419,12 @@ export function WorldApp() {
     <main
       data-reduced-motion={reduced}
       data-world-ready={ready||failed}
+      data-loading={loading}
       className={`world-app ${activeScene ? "in-content-scene" : ""} ${settings.dusk ? "is-dusk" : ""} ${first ? "at-border" : ""}`}
     >
       <a
         className="skip-link"
+        inert={loading}
         href="#world-navigation"
         onClick={() => setPanel("places")}
       >
@@ -416,8 +432,8 @@ export function WorldApp() {
       </a>
       <div
         className="world-viewport"
-        inert={first || modal || !ready}
-        tabIndex={first || modal || failed || !ready ? -1 : 0}
+        inert={first || modal || !ready || loading}
+        tabIndex={first || modal || failed || !ready || loading ? -1 : 0}
         role="region"
         aria-label={
           failed
@@ -467,7 +483,7 @@ export function WorldApp() {
           </SceneBoundary>
         )}
       </div>
-      <div className="world-interface" inert={first || modal}>
+      <div className="world-interface" inert={first || modal || loading}>
         <button
           type="button"
           className="pass-nav pass-float"
@@ -805,21 +821,18 @@ export function WorldApp() {
           </div>
         )}
       </div>
-      {!ready && !failed && pass && !first && !modal && <section className="world-reveal" aria-label="Preparing your world" role="status">
-        <Logo /><span className="eyebrow">ARRIVING</span><div className="reveal-orbit" aria-hidden="true"/>
-        <h2>{Object.values(regionStates).includes('error')?'The crossing needs another try.':regionStates.gpu==='loading'?'Bringing the city into light.':'The bay is taking shape.'}</h2>
-        <p>Preparing the streets, mountain ridges and waterfront for your first view.</p>
-        <div><button className="secondary-button" onClick={()=>{setRegionStates({});setRetry(v=>v+1)}}>Retry</button><button className="secondary-button" onClick={()=>{setRegionStates({});updateSettings({quality:'low'});setRetry(v=>v+1)}}>Use lightweight view</button><Link href="/work">Browse the work ↗</Link></div>
-      </section>}
-      {!pass && (
-        <div className="initial-loading" role="status">
-          <Logo />
-          <p>A little world is waiting.</p>
-          <span className="loading-dot" />
-          <Link href="/work">Browse the work</Link>
-        </div>
-      )}
-      {first && pass && (
+      {loading && <WorldLoading
+        key={retry}
+        states={regionStates}
+        required={sceneResources(route.view==='underwater'&&!!pass?.diveKit,route.level)}
+        initialized={!!pass}
+        ready={ready}
+        reduced={reduced}
+        onComplete={onLoadingComplete}
+        onRetry={()=>setRetry(v=>v+1)}
+        onLightweight={()=>{updateSettings({quality:'low'});setRetry(v=>v+1)}}
+      />}
+      {first && pass && !loading && (
         <section className="arrival-screen" aria-label="Welcome to WONDERHAO">
           <header>
             <Logo />
@@ -840,7 +853,7 @@ export function WorldApp() {
 
         </section>
       )}
-      {panel && (
+      {panel && !loading && (
         <Dialog
           title={
             {
@@ -1014,7 +1027,7 @@ export function WorldApp() {
           )}
         </Dialog>
       )}
-      {project && (
+      {project && !loading && (
         <Dialog
           title={`${project.category} / Case study`}
           restoreFocus={()=>returnTarget==='directory'?document.querySelector<HTMLButtonElement>('.city-work-link button'):document.querySelector<HTMLButtonElement>(`button[aria-label="Explore ${projectBuildings.find(b=>b.id===returnTarget)?.name}"]`)??document.querySelector<HTMLElement>('.world-viewport')}
